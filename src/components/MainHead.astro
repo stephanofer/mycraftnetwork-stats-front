@@ -1,0 +1,46 @@
+---
+import "@/styles/global.css";
+import { SEO } from "astro-seo";
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonicalUrl?: string;
+}
+
+const {
+  title = "Estadísticas - Mycraft Network",
+  description = "Ranking y estadísticas de Mycraft Network: kills, ratio KD, ELO, niveles y más en Survival RPG y Survival 1.21.6.",
+  canonicalUrl = Astro.url.href,
+} = Astro.props;
+
+const seoKeywords =
+  "estadísticas minecraft, ranking Mycraft Network, kills minecraft, KD ratio, ELO ranking, king of the hill, survival rpg, survival 1.21.6, top jugadores minecraft, leaderboard minecraft, estadísticas jugadores, server.mycraft.es, Mycraft Network stats";
+---
+
+<SEO
+  title={title}
+  description={description}
+  canonical={canonicalUrl}
+  extend={{
+    meta: [
+      { name: "keywords", content: seoKeywords },
+      { name: "author", content: "stephanofer" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:site", content: "@mycraftnetwork" },
+      { name: "twitter:creator", content: "@stephanofer_" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+      { name: "twitter:image", content: "https://imagedelivery.net/avcZT-oq9_igVytxtuW9-A/a00384b9-c99b-490a-76a6-b032ab357500/format=jpg" },
+    ],
+  }}
+  openGraph={{
+    basic: {
+      title: title,
+      type: "website",
+      image:
+        "https://imagedelivery.net/avcZT-oq9_igVytxtuW9-A/a00384b9-c99b-490a-76a6-b032ab357500/format=jpg",
+      url: canonicalUrl,
+    },
+  }}
+/>

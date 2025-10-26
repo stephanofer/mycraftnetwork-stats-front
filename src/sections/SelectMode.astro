@@ -1,0 +1,241 @@
+---
+import ArrowRight from "@/assets/icons/ArrowRight.svg";
+---
+
+<div class="container">
+  <div class="container-title">
+    <h1>Selecciona tu modalidad</h1>
+    <h2>
+      Elige entre diferentes modalidades para visualizar tus estadísticas y los
+      rankings
+    </h2>
+  </div>
+
+  <div class="select-mode">
+    <div class="select-container">
+      <h3>Survival RPG</h3>
+      <p>
+        Explora los rankings en diferentes tipos como kills, KD ratio, rachas,
+        ELO, niveles y King of the Hill.
+      </p>
+
+      <figure class="image-container">
+        <img
+          src="/images/image1.webp"
+          alt="Modalidad Survival RPG"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+          width="500"
+          height="300"
+        />
+      </figure>
+      <div class="more-details">
+        <span>Ver mas detalles</span>
+        <div>
+          <a class="link" href="/ranking/rpg/kills"
+            >Ingresar
+            <ArrowRight width={16} height={16} />
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="select-container">
+      <h3>Survival 1.21.8</h3>
+      <p>
+        Explora los rankings en diferentes tipos como kills, KD ratio, rachas,
+        ELO, niveles y King of the Hill.
+      </p>
+
+      <figure class="image-container">
+        <img
+          src="/images/image2.webp"
+          alt="Modalidad Survival RPG"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+          width="500"
+          height="300"
+        />
+      </figure>
+
+      <div class="more-details">
+        <span>Ver mas detalles</span>
+        <div>
+          <a class="link" href="/ranking/survival/kills"
+            >Ingresar
+            <ArrowRight width={16} height={16} />
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    gap: 1.5rem;
+    max-width: 1440px;
+
+    @media (width > 1024px) {
+      gap: 0;
+    }
+  }
+
+  .container-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .select-mode {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+
+    @media (width > 1024px) {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      border-bottom-width: 1px;
+      border-bottom-color: var(--color-divider);
+      border-bottom-style: solid;
+      flex-grow: 1;
+      align-items: center;
+      gap: 0;
+    }
+
+    & > div:first-child {
+      @media (width > 1024px) {
+        border-right-width: 1px;
+        border-right-color: var(--color-divider);
+        border-right-style: solid;
+      }
+    }
+
+    .select-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      @media (width > 1024px) {
+        padding: 3rem;
+      }
+    }
+
+    .image-container {
+      width: 100%;
+      height: 200px;
+      margin-top: 1.5rem;
+      max-width: 500px;
+      @media (width > 1024px) {
+        height: 300px;
+      }
+
+      & img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 1rem;
+      }
+    }
+
+    & h3 {
+      font-size: var(--fs-lg);
+      font-family: "Inter", sans-serif;
+      line-height: 1.2;
+      min-height: 1.2em;
+      margin: 0;
+    }
+    & p {
+      margin-top: 0.5rem;
+      max-width: 50ch;
+      font-size: var(--fs-sm);
+      color: var(--color-opacity);
+    }
+  }
+
+  h1 {
+    font-family: "Clash";
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    letter-spacing: 0;
+
+    @media (width > 1024px) {
+      display: flex;
+      font-size: var(--fs-xxl);
+    }
+  }
+
+  h2 {
+    font-family: "Inter";
+    font-size: var(--fs-sm);
+    font-weight: 400;
+    background: linear-gradient(
+      100deg,
+      #f4c587,
+      #d6d3e9 60.42%,
+      #99d2ec 95.31%
+    );
+    background-clip: text;
+    color: transparent;
+    text-align: center;
+
+    @media (width > 1024px) {
+      display: flex;
+      font-size: var(--fs-md);
+    }
+
+    @media (width < 450px) {
+      max-width: 45ch;
+      text-align: center;
+    }
+  }
+
+  .more-details {
+    display: flex;
+    margin-top: 1.5rem;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    .link {
+      display: flex;
+      color: white;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: "Clash";
+      font-weight: 500;
+      font-size: var(--fs-sm);
+      background-color: var(--resalt);
+      border: 0;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+      padding-right: 1.5rem;
+      padding-left: 1.5rem;
+      border-radius: 1rem;
+      cursor: pointer;
+
+      &:hover {
+        background-color: var(--resalt);
+        opacity: 0.9;
+      }
+    }
+
+    & span {
+      font-size: var(--fs-sm);
+      text-decoration: underline;
+      cursor: pointer;
+      color: var(--color-opacity);
+      transition: color 150ms ease-in-out;
+
+      &:hover {
+        color: var(--resalt);
+      }
+    }
+  }
+</style>

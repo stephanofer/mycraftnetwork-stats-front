@@ -1,0 +1,27 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import SelectMode from "@/sections/SelectMode.astro";
+export const prerender = true;
+---
+
+<BaseLayout>
+  <div class="page-container">
+    <div class="main">
+      <SelectMode />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100% - 108px);
+  }
+
+  .main {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+  }
+</style>

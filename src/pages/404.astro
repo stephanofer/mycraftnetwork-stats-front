@@ -1,0 +1,53 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+const title = "Página no encontrada - Mycraft Network";
+export const prerender = true;
+---
+
+<BaseLayout title={title}>
+  <main class="error-container">
+    <div class="error-content">
+      <h1>404</h1>
+      <p>
+        ¿Quizás buscabas el ranking de <a href="/ranking/rpg/kills">RPG</a> o la
+        <a href="/">página principal</a>?
+      </p>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .error-container {
+    min-height: calc(100vh - 108px);
+    padding-left: 1rem;
+    padding-right: 1rem;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+  }
+
+  .error-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h1 {
+    font-family: "Clash";
+    font-size: 10rem;
+    color: var(--color-opacity);
+    line-height: 1;
+
+    @media (width > 1024px) {
+      font-size: 20rem;
+    }
+  }
+  p {
+    text-align: center;
+  }
+
+  a {
+    color: var(--resalt);
+  }
+</style>

@@ -1,0 +1,64 @@
+---
+import Footer from "@/components/Footer.astro";
+import Header from "@/components/Header.astro";
+import MainHead from "@/components/MainHead.astro";
+import { ClientRouter } from "astro:transitions";
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.webp" />
+    <link
+      rel="preload"
+      href="/fonts/Inter.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href="/fonts/Clash.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href="/fonts/Seven.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <MainHead title={title} />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Mycraft Network Estadísticas",
+        "description": "Estadísticas y rankings de jugadores de Minecraft en Mycraft Network. Visualiza kills, KD ratio, ELO, niveles y más en Survival RPG y Survival 1.21.6.",
+        "url": "https://estadisticas.mycraft.es",
+        "publisher": {
+          "@type": "Person",
+          "name": "stephanofer",
+          "url": "https://stephanofer.com"
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://estadisticas.mycraft.es/ranking/{mode}/{type}",
+          "query-input": "required name=mode name=type"
+        }
+      }
+    </script>
+    <ClientRouter />
+  </head>
+  <body>
+    <Header />
+    <slot />
+    <Footer />
+  </body>
+</html>

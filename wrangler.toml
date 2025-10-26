@@ -1,0 +1,23 @@
+name = "heranetwork-stats"
+main = "./dist/_worker.js/index.js"
+compatibility_date = "2025-06-22"
+compatibility_flags = ["nodejs_compat"]
+routes = [
+  { pattern = "estadisticas.heramc.net", custom_domain = true }
+]
+
+#CHANGE IN FUTURE
+[vars]
+API_RPG="https://api.heramc.net/api/v1/rpg/leaderboards"
+API_SURVI="https://api.heramc.net/api/v1/survival/leaderboards"
+API_PLAYERS_RPG="RANDOM"
+API_PLAYERS_SURVI="RANDOM"
+
+
+[assets]
+binding = "ASSETS"
+directory = "./dist"
+
+[observability]
+enabled = true
+

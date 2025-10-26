@@ -1,0 +1,150 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import LeaderBoards from "@/components/LeaderBoards.astro";
+import type {
+  Modes,
+  TypesLeaderBoardRPG,
+  TypesLeaderBoardSurvival,
+} from "@/utils";
+import { typeLabels } from "@/utils";
+import Loader from '@/components/Loader.astro'
+
+export function getStaticPaths() {
+  const modes: Modes[] = ["rpg", "survival"];
+
+  const typesPerMode: Record<
+    Modes,
+    TypesLeaderBoardRPG[] | TypesLeaderBoardSurvival[]
+  > = {
+    rpg: ["kills", "kd", "maxstreak", "elo", "level", "koth"],
+    survival: ["kills", "kd", "maxstreak", "elo", "koth"],
+  };
+
+  return modes.flatMap((mode) => {
+    const typesForThisMode = typesPerMode[mode];
+    return typesForThisMode.map((type) => {
+      return {
+        params: { mode, type },
+        props: {
+          pageTitle: `Estadisticas ${mode === "rpg" ? "RPG" : "Survival 1.21.8"}`,
+          fullTitle: `Estadisticas - ${mode === "rpg" ? "RPG" : "Survival 1.21.8"}`,
+          availableTypes: typesForThisMode,
+        },
+      };
+    });
+  });
+}
+
+const { fullTitle, pageTitle, availableTypes } = Astro.props;
+const { mode, type } = Astro.params;
+
+export const prerender = true;
+---
+
+<BaseLayout title={fullTitle}>
+  <div class="container">
+    <div class="title">
+      <h1>{pageTitle}</h1>
+    </div>
+    <div class="selector">
+      <nav class="tabs-container">
+        <div class="tabs-list">
+          {
+            availableTypes.map((availableType) => (
+              <a
+                href={`/ranking/${mode}/${availableType}`}
+                class={type === availableType ? "active" : ""}
+              >
+                <span>{typeLabels[availableType]}</span>
+              </a>
+            ))
+          }
+        </div>
+      </nav>
+    </div>
+    <LeaderBoards server:defer type={type} mode={mode}>
+      <Loader slot="fallback"/>
+    </LeaderBoards>
+  </div>
+</BaseLayout>
+
+<style>
+  .container {
+    max-width: 1440px;
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  .title {
+    text-align: center;
+    & h1 {
+      font-family: "Clash";
+      font-weight: 600;
+      font-size: var(--fs-xxl);
+    }
+  }
+
+  .selector {
+    margin-top: 3rem;
+    width: 100%;
+    overflow-x: auto;
+    border-bottom: 2px solid var(--color-divider);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .selector::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .tabs-container {
+    min-width: 100%;
+  }
+
+  .tabs-list {
+    display: flex;
+    gap: 0.5rem;
+    white-space: nowrap;
+    min-width: max-content;
+
+    & a {
+      padding: 1rem 1rem 0.5rem;
+      border-top: 2px solid var(--color-divider);
+      border-left: 2px solid var(--color-divider);
+      border-right: 2px solid var(--color-divider);
+      border-bottom: none;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+      flex-grow: 1;
+      position: relative;
+      cursor: pointer;
+
+      &:hover {
+        background-color: rgb(17 17 17);
+      }
+    }
+    & a.active::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: var(--resalt);
+      border-radius: 3px;
+    }
+
+    & span {
+      font-family: "Clash";
+      font-weight: 500;
+      font-size: var(--fs-md);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+  }
+</style>

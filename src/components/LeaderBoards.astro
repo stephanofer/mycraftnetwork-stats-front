@@ -1,0 +1,269 @@
+---
+import type { Modes, TypesLeaderBoardGlobal } from "@/utils";
+import { getLeaderboard } from "@/services/leaderboard";
+import Trophy from "@/assets/icons/Trophy.svg";
+import { Image } from "astro:assets";
+import Add from "@/assets/icons/Add.svg";
+import Sword from "@/assets/icons/Sword.svg";
+import KD from "@/assets/icons/KD.svg";
+import Elo from "@/assets/icons/Elo.svg";
+import Koth from "@/assets/icons/Koth.svg";
+import MaxStreak from "@/assets/icons/MaxStreak.svg";
+import Level from "@/assets/icons/Level.svg";
+import Subtract from "@/assets/icons/Subtract.svg";
+import { typeLabels } from "@/utils";
+
+interface Props {
+  mode: Modes;
+  type: TypesLeaderBoardGlobal;
+}
+
+const { mode, type } = Astro.props;
+
+const { data } = await getLeaderboard({ mode, type });
+
+
+const trophyColors = {
+  1: "#FFD700",
+  2: "#C0C0C0",
+  3: "#CD7F32",
+};
+
+const typeIconMap: Record<TypesLeaderBoardGlobal, any> = {
+  kills: {
+    component: Sword,
+    color: "#DC143C",
+  },
+  kd: {
+    component: KD,
+    color: "#DC143C",
+  },
+  elo: {
+    component: Elo,
+    color: "#FFD700",
+  },
+  koth: {
+    component: Koth,
+    color: "#DC143C",
+  },
+  maxstreak: {
+    component: MaxStreak,
+    color: "#FF851B",
+  },
+  level: {
+    component: Level,
+    color: "#2ECC40",
+  },
+};
+
+const IconComponent = typeIconMap[type].component;
+const IconColor = typeIconMap[type].color;
+
+// Cache control for performance optimization
+// Astro.response.headers.set("Cache-Control", "public, max-age=30");
+---
+
+<div class="leaderboard-container">
+  <div class="title">
+    <div class="title-text">
+      <span>#</span>
+      <span class="title-player">Jugador</span>
+      <span>{typeLabels[type]}</span>
+      <span>Actu.</span>
+    </div>
+  </div>
+  <div class="content">
+    {
+      data && data.length > 0 ? (
+        data.map((player) => (
+          <a class={`data ${player.rank <= 3 ? `top-${player.rank}` : ""}`}>
+            <span class="rank">
+              {player.rank <= 3 ? (
+                <Trophy
+                  width={48}
+                  height={48}
+                  color={trophyColors[player.rank as keyof typeof trophyColors]}
+                />
+              ) : (
+                <span class="numeric-rank">{player.rank}</span>
+              )}
+            </span>
+            <span class="player">
+              <Image
+                src={
+                  player.userProfile?.skinUUID
+                      ? `https://render.crafty.gg/3d/bust/${player.userProfile.skinUUID}`
+                      : `https://render.crafty.gg/3d/bust/null`
+                }
+                alt={`Avatar de ${player.userProfile?.lastNickname || "DESCONOCIDO"}`}
+                width={60}
+                height={60}
+                class="player-image"
+                decoding="async"
+              />
+              {player.userProfile?.lastNickname}
+            </span>
+
+            <span class="value">
+              <div class="value-content">
+                {IconComponent && (
+                  <IconComponent width={24} height={24} color={IconColor} />
+                )}
+                <span>{player.value}</span>
+              </div>
+            </span>
+            <span class="update">
+              <div class="update-content">
+                {player.dailyDelta > 0 && (
+                  <Add color="#4CAF50" width={24} height={24} />
+                )}
+                {player.dailyDelta < 0 && (
+                  <Subtract color="#F44336" width={24} height={24} />
+                )}
+                <span class="update-value">
+                  {player.dailyDelta < 0
+                    ? Math.abs(player.dailyDelta)
+                    : player.dailyDelta}
+                </span>
+              </div>
+            </span>
+          </a>
+        ))
+      ) : (
+        <div class="no-data">
+          <span>No se encontraron resultados</span>
+          <span class="report-message">
+            ¿Crees que es un error? Repórtalo en nuestro Discord
+          </span>
+        </div>
+      )
+    }
+  </div>
+</div>
+
+<style>
+  .leaderboard-container {
+    border: 1px solid var(--color-divider);
+    padding: 1rem;
+    width: 100%;
+    @media (width > 1024px) {
+      padding: 2.5rem;
+    }
+  }
+  .title {
+    font-weight: 500;
+    font-size: var(--fs-sm);
+    opacity: 0.4;
+
+    @media (width > 1024px) {
+      font-size: var(--fs-md);
+    }
+  }
+
+  .title-text,
+  .data {
+    display: grid;
+    padding: 1rem 0.5rem;
+
+    grid-template-columns: 0.8fr 1.5fr 1fr 0.7fr;
+    width: 100%;
+    text-align: left;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .data {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--color-divider);
+    border-radius: 1rem;
+    cursor: pointer;
+
+    transition:
+      background-color 0.2s ease,
+      transform 200ms ease;
+
+    &:hover {
+      background-color: rgb(60 60 60 / 0.3);
+
+      transform: translateX(-1rem);
+    }
+    & span {
+      font-family: "Seven";
+      font-weight: 900;
+      font-size: var(--fs-sm);
+
+      @media (width > 1024px) {
+        font-size: var(--fs-md);
+      }
+    }
+  }
+  .update-content,
+  .value-content,
+  .rank {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .data .rank .numeric-rank {
+    font-size: var(--fs-xl);
+    margin-left: 0.5rem;
+  }
+
+  .player {
+    text-align: left;
+    display: flex;
+    align-items: center;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+
+    @media (width > 1024px) {
+      font-size: var(--fs-md);
+      flex-direction: row;
+      gap: 1rem;
+    }
+  }
+
+  .top-1 {
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 215, 0, 0.15),
+      rgba(255, 215, 0, 0.05) 50%,
+      rgba(255, 215, 0, 0.01) 90%
+    );
+  }
+
+  .top-2 {
+    background-image: linear-gradient(
+      90deg,
+      rgba(192, 192, 192, 0.15),
+      rgba(192, 192, 192, 0.05) 50%,
+      rgba(192, 192, 192, 0.01) 90%
+    );
+  }
+
+  .top-3 {
+    background-image: linear-gradient(
+      90deg,
+      rgba(205, 127, 50, 0.15),
+      rgba(205, 127, 50, 0.05) 50%,
+      rgba(205, 127, 50, 0.01) 90%
+    );
+  }
+
+  .no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+    font-size: var(--fs-md);
+    text-align: center;
+    font-family: "Clash";
+
+    @media (width > 1024px) {
+      font-size: var(--fs-lg);
+    }
+  }
+</style>
