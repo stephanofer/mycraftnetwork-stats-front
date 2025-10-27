@@ -6,7 +6,7 @@ import * as Sentry from "@sentry/astro";
 export async function getLeaderboard({
   mode,
   type,
-  limit = 150,
+  limit = 30,
   offset = 0,
 }: LeaderBoardParams): Promise<LeaderboardResponse> {
   try {
