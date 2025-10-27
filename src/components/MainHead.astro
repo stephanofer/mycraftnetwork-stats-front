@@ -1,6 +1,7 @@
 ---
 import "@/styles/global.css";
 import { SEO } from "astro-seo";
+import Analytics from "@vercel/analytics/astro";
 
 interface Props {
   title?: string;
@@ -31,7 +32,11 @@ const seoKeywords =
       { name: "twitter:creator", content: "@stephanofer_" },
       { name: "twitter:title", content: title },
       { name: "twitter:description", content: description },
-      { name: "twitter:image", content: "https://imagedelivery.net/avcZT-oq9_igVytxtuW9-A/a00384b9-c99b-490a-76a6-b032ab357500/format=jpg" },
+      {
+        name: "twitter:image",
+        content:
+          "https://imagedelivery.net/avcZT-oq9_igVytxtuW9-A/a00384b9-c99b-490a-76a6-b032ab357500/format=jpg",
+      },
     ],
   }}
   openGraph={{
@@ -44,3 +49,4 @@ const seoKeywords =
     },
   }}
 />
+<Analytics />
