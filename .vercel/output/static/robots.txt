@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-
-Crawl-delay: 1
-
-Sitemap: https://estadisticas.mycraft.es/sitemap-index.xml
