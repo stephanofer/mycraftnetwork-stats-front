@@ -3,6 +3,8 @@ import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
 import MainHead from "@/components/MainHead.astro";
 import { ClientRouter } from "astro:transitions";
+import Analytics from '@vercel/analytics/astro'
+
 
 const { title } = Astro.props;
 ---
@@ -35,12 +37,14 @@ const { title } = Astro.props;
       crossorigin="anonymous"
     />
     <MainHead title={title} />
+    <Analytics />
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "Mycraft Network Estadísticas",
-        "description": "Estadísticas y rankings de jugadores de Minecraft en Mycraft Network. Visualiza kills, KD ratio, ELO, niveles y más en Survival RPG y Survival 1.21.6.",
+        "description": "Estadísticas y rankings de jugadores de Minecraft en Mycraft Network. Visualiza kills, KD ratio, ELO, niveles y más en Survival RPG y Dungeon 1.21.",
         "url": "https://estadisticas.mycraft.es",
         "publisher": {
           "@type": "Person",
