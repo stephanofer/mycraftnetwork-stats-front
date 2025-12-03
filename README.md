@@ -1,6 +1,6 @@
-# Hera Network Stats Frontend
+# Mycraft Network Stats Frontend
 
-A web application for displaying player statistics and leaderboards for all game modes on the Hera Network.
+A web application for displaying player statistics and leaderboards for all game modes on the Mycraft Network.
 
 ## About
 
