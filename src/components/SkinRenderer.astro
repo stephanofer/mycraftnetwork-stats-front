@@ -1,0 +1,90 @@
+---
+import { getSkinUrl, type SkinRenderType } from "@/utils";
+
+interface Props {
+  uuid: string;
+  type?: SkinRenderType;
+  alt?: string;
+  width?: number;
+  height?: number;
+  className?: string;
+  lazy?: boolean;
+}
+
+const { 
+  uuid, 
+  type = "full", 
+  alt = "Player skin",
+  width,
+  height,
+  className = "",
+  lazy = true 
+} = Astro.props;
+
+const defaultDimensions: Record<SkinRenderType, { width: number; height: number }> = {
+  full: { width: 300, height: 500 },
+  bust: { width: 120, height: 120 },
+  head: { width: 64, height: 64 },
+};
+
+const finalWidth = width || defaultDimensions[type].width;
+const finalHeight = height || defaultDimensions[type].height;
+const skinUrl = getSkinUrl(uuid, type);
+---
+
+<div class={`skin-renderer skin-${type} ${className}`} style={`width: ${finalWidth}px; height: ${finalHeight}px;`}>
+  <img
+    src={skinUrl}
+    alt={alt}
+    width={finalWidth}
+    height={finalHeight}
+    loading={lazy ? "lazy" : "eager"}
+    decoding="async"
+    class="skin-image"
+  />
+</div>
+
+<style>
+  .skin-renderer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+    border-radius: 8px;
+  }
+
+  .skin-image {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    opacity: 0;
+    animation: fadeInSkin 0.3s ease forwards;
+    animation-delay: 0.1s;
+  }
+
+  @keyframes fadeInSkin {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .skin-full {
+    /* Full body renders - larger display */
+  }
+
+  .skin-bust {
+    /* Bust renders - medium display */
+  }
+
+  .skin-head {
+    /* Head renders - small display, perfect for avatars */
+  }
+
+  .skin-head .skin-image {
+    border-radius: 4px;
+  }
+</style>

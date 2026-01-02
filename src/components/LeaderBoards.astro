@@ -76,7 +76,11 @@ const IconColor = typeIconMap[type].color;
     {
       data && data.length > 0 ? (
         data.map((player) => (
-          <a class={`data ${player.rank <= 3 ? `top-${player.rank}` : ""}`}>
+          <a 
+            href={`/player/${encodeURIComponent(player.userProfile?.lastNickname || '')}`}
+            class={`data ${player.rank <= 3 ? `top-${player.rank}` : ""}`}
+            title={`Ver perfil de ${player.userProfile?.lastNickname || 'jugador'}`}
+          >
             <span class="rank">
               {player.rank <= 3 ? (
                 <Trophy

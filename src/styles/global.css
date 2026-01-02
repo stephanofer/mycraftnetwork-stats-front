@@ -19,6 +19,17 @@
   --resalt: rgb(0 118 209);
   --color-divider: rgb(20 20 20);
   --color-opacity: rgb(129 129 129);
+  
+  --color-success: #10B981;
+  --color-warning: #FFD700;
+  --color-danger: #DC143C;
+  --color-info: #3B82F6;
+  
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 400ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @font-face {
@@ -73,4 +84,24 @@ ul {
 
 a{
   color: white
+}
+
+:focus-visible {
+  outline: 2px solid var(--resalt);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(0, 118, 209, 0.3);
+  color: white;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

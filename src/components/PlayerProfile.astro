@@ -1,0 +1,679 @@
+---
+import Timer from "@/assets/icons/Timer.svg";
+import {
+    type PlayerProfileData,
+    formatKD,
+    formatNumber,
+    formatRelativeTime,
+    getHeadUrl,
+} from "@/utils";
+import SkinRenderer from "./SkinRenderer.astro";
+
+interface Props {
+  player: PlayerProfileData;
+}
+
+const { player } = Astro.props;
+
+const lastSeenText = formatRelativeTime(player.lastSeen);
+const sortedKothMaps = [...player.koth.maps].sort((a, b) => b.wins - a.wins);
+
+function formatDuelMode(mode: string): string {
+  return mode
+    .replace(/_/g, " ")
+    .replace(/1v1/gi, "1v1")
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function getWinrateColor(winrate: number): string {
+  if (winrate >= 60) return "#22c55e";
+  if (winrate >= 50) return "#eab308";
+  return "#ef4444";
+}
+---
+
+<article class="profile">
+  <div class="header-row">
+    <section class="card player-card animate-slide-left">
+      <div class="player-content">
+        <div class="skin-area">
+          <SkinRenderer
+            uuid={player.skin.skinIdentifier
+              ? player.skin.skinIdentifier
+              : "8667ba71b85a4004af54457a9734eed7"}
+            type="full"
+            alt={`Skin de ${player.username}`}
+            width={140}
+            height={260}
+            lazy={false}
+          />
+        </div>
+
+        <div class="player-identity">
+          <img
+            src={getHeadUrl(player.skin.skinIdentifier || "8667ba71b85a4004af54457a9734eed7")}
+            alt=""
+            width="56"
+            height="56"
+            class="player-head"
+          />
+          <div class="player-details">
+            <h1 class="player-name">{player.username}</h1>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card stats-card animate-slide-right">
+      <div class="card-header">
+        <h2 class="card-title">Estadísticas de Combate</h2>
+      </div>
+      <div class="stats-list">
+        <div class="stat-row">
+          <span class="stat-label">Asesinatos</span>
+          <span class="stat-value kills"
+            >{formatNumber(player.combat.kills)}</span
+          >
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Muertes</span>
+          <span class="stat-value deaths"
+            >{formatNumber(player.combat.deaths)}</span
+          >
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">K/D Ratio</span>
+          <span class="stat-value kd">{formatKD(player.combat.kd)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Racha Actual</span>
+          <span class="stat-value streak"
+            >{formatNumber(player.combat.streak)}</span
+          >
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Mejor Racha</span>
+          <span class="stat-value maxstreak"
+            >{formatNumber(player.combat.maxStreak)}</span
+          >
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Puntos (ELO)</span>
+          <span class="stat-value elo"
+            >{formatNumber(player.combat.points)}</span
+          >
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Combat Logs</span>
+          <span class="stat-value combatlogs"
+            >{formatNumber(player.combat.combatLogs)}</span
+          >
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="sections-row">
+    <section
+      class="card section koth-section animate-slide-left"
+      style="animation-delay: 0.1s;"
+    >
+      <div class="section-header">
+        <div class="section-title">
+          <h2>King of the Hill</h2>
+        </div>
+      </div>
+
+      <div class="total-highlight koth-total">
+        <span class="total-label">Victorias Totales</span>
+        <span class="total-value">{player.koth.totalWins}</span>
+      </div>
+
+      {
+        sortedKothMaps.length > 0 ? (
+          <div class="stats-list section-list">
+            {sortedKothMaps.map((map, i) => (
+              <div class="stat-row" data-rank={i + 1}>
+                <span class="stat-label">
+                  <span class="rank-indicator">#{i + 1}</span>
+                  {map.kothName}
+                </span>
+                <span class="stat-value">{map.wins}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="empty">Sin victorias registradas</p>
+        )
+      }
+    </section>
+
+    <section
+      class="card section duels-section animate-slide-right"
+      style="animation-delay: 0.1s;"
+    >
+      <div class="section-header">
+        <div class="section-title">
+          <h2>Duelos</h2>
+        </div>
+      </div>
+
+      <div class="total-highlight duels-total">
+        <span class="total-label">Partidas Totales</span>
+        <span class="total-value"
+          >{formatNumber(player.duels.totalMatches)}</span
+        >
+      </div>
+
+      <div class="stats-list section-list">
+        <div class="stat-row">
+          <span class="stat-label">Victorias</span>
+          <span class="stat-value wins">{formatNumber(player.duels.wins)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Derrotas</span>
+          <span class="stat-value losses"
+            >{formatNumber(player.duels.losses)}</span
+          >
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Asesinatos</span>
+          <span class="stat-value">{formatNumber(player.duels.kills)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Muertes</span>
+          <span class="stat-value">{formatNumber(player.duels.deaths)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">K/D Ratio</span>
+          <span class="stat-value">{formatKD(player.duels.kd)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Winrate</span>
+          <span
+            class="stat-value"
+            style={`color: ${getWinrateColor(player.duels.winRate)}`}
+          >
+            {player.duels.winRate.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+
+      {
+        player.duels.rankings.length > 0 && (
+          <div class="rankings-section">
+            <h3 class="sub-header">Rankings por Modo</h3>
+            <div class="stats-list section-list">
+              {player.duels.rankings.map((r, i) => (
+                <div class="stat-row" data-rank={i + 1}>
+                  <span class="stat-label">
+                    <span class="rank-indicator">#{i + 1}</span>
+                    {formatDuelMode(r.mode)}
+                  </span>
+                  <span class="stat-value">{formatNumber(r.score)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      }
+
+      {
+        player.duels.lastPlayed && (
+          <p class="last-played">
+            <Timer width={14} height={14} />
+            Última partida: {formatRelativeTime(player.duels.lastPlayed)}
+          </p>
+        )
+      }
+    </section>
+  </div>
+</article>
+
+<style>
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  .animate-slide-left {
+    animation: slideInLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+
+  .animate-slide-right {
+    animation: slideInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+
+  .profile {
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    z-index: 1;
+  }
+
+  .header-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .header-row {
+      grid-template-columns: auto 1fr;
+      gap: 1.5rem;
+    }
+  }
+
+  .card {
+    background: linear-gradient(
+      135deg,
+      rgba(13, 13, 16, 0.95) 0%,
+      rgba(17, 17, 20, 0.95) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+  }
+
+  @media (min-width: 768px) {
+    .card {
+      padding: 2rem;
+    }
+  }
+
+  .player-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .player-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .skin-area {
+    flex-shrink: 0;
+    width: 140px;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .player-identity {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .player-head {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    image-rendering: pixelated;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .player-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .player-name {
+    font-family: "Seven", sans-serif;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    line-height: 1.1;
+  }
+
+  @media (min-width: 768px) {
+    .player-name {
+      font-size: 2rem;
+    }
+  }
+
+  .player-lastseen {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.9rem;
+    margin-top: 0.35rem;
+  }
+
+  .stats-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-header {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .card-title {
+    font-family: "Clash", sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+
+  @media (min-width: 768px) {
+    .card-title {
+      font-size: 1.35rem;
+    }
+  }
+  .stats-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.2s ease;
+  }
+
+  .stat-row:last-child {
+    border-bottom: none;
+  }
+
+  .stat-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+    margin: 0 -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    border-radius: 0.5rem;
+  }
+
+  .stat-label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .stat-label {
+      font-size: 1.1rem;
+    }
+  }
+
+  .stat-value {
+    font-family: "Seven", monospace;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  @media (min-width: 768px) {
+    .stat-value {
+      font-size: 1.4rem;
+    }
+  }
+
+  .stat-value.kills {
+    color: #fca5a5;
+  }
+  .stat-value.deaths {
+    color: #9ca3af;
+  }
+  .stat-value.kd {
+    color: #60a5fa;
+  }
+  .stat-value.streak {
+    color: #fb923c;
+  }
+  .stat-value.maxstreak {
+    color: #fbbf24;
+  }
+  .stat-value.elo {
+    color: #c4b5fd;
+  }
+  .stat-value.combatlogs {
+    color: #f87171;
+  }
+  .stat-value.wins {
+    color: #22c55e;
+  }
+  .stat-value.losses {
+    color: #ef4444;
+  }
+
+  .rank-indicator {
+    font-family: "Seven", monospace;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.35);
+    min-width: 2rem;
+  }
+
+  .stat-row[data-rank="1"] .rank-indicator {
+    color: #fbbf24;
+  }
+  .stat-row[data-rank="2"] .rank-indicator {
+    color: #9ca3af;
+  }
+  .stat-row[data-rank="3"] .rank-indicator {
+    color: #cd7f32;
+  }
+
+  .stat-row[data-rank="1"] .stat-value {
+    color: #fbbf24;
+  }
+  .stat-row[data-rank="2"] .stat-value {
+    color: #9ca3af;
+  }
+  .stat-row[data-rank="3"] .stat-value {
+    color: #cd7f32;
+  }
+
+  .sections-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .sections-row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .section-header {
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--resalt);
+  }
+
+  .section-title h2 {
+    font-family: "Clash", sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+
+  @media (min-width: 768px) {
+    .section-title h2 {
+      font-size: 1.35rem;
+    }
+  }
+
+  .total-highlight {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .total-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .total-value {
+    font-family: "Seven", monospace;
+    font-size: 1.75rem;
+    font-weight: 700;
+  }
+
+  @media (min-width: 768px) {
+    .total-value {
+      font-size: 2rem;
+    }
+  }
+
+  .koth-total {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+  }
+
+  .koth-total .total-value {
+    color: #fbbf24;
+  }
+
+  .duels-total {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  .duels-total .total-value {
+    color: #60a5fa;
+  }
+
+  .section-list .stat-row {
+    padding: 0.75rem 0;
+  }
+
+  .section-list .stat-label {
+    font-size: 0.95rem;
+  }
+
+  .section-list .stat-value {
+    font-size: 1.1rem;
+  }
+
+  @media (min-width: 768px) {
+    .section-list .stat-label {
+      font-size: 1rem;
+    }
+    .section-list .stat-value {
+      font-size: 1.2rem;
+    }
+  }
+
+  .rankings-section {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sub-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .last-played {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 1rem 0 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .empty {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 1rem;
+    text-align: center;
+    padding: 2.5rem 1rem;
+    margin: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-slide-left,
+    .animate-slide-right {
+      animation: fadeIn 0.4s ease forwards;
+    }
+    .bg-glow {
+      animation: none;
+    }
+  }
+</style>

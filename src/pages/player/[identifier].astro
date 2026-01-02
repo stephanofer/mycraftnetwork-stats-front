@@ -1,0 +1,40 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import PlayerProfile from "@/components/PlayerProfile.astro";
+import PlayerNotFound from "@/components/PlayerNotFound.astro";
+import { getPlayerProfile } from "@/services/profile";
+import { isValidPlayerIdentifier } from "@/utils";
+
+export const prerender = false;
+
+const { identifier } = Astro.params;
+
+if (!identifier || !isValidPlayerIdentifier(identifier)) {
+  return Astro.redirect("/404");
+}
+
+const sanitizedIdentifier = identifier.trim();
+
+const result = await getPlayerProfile(sanitizedIdentifier);
+
+const pageTitle = result.success 
+  ? `${result.data.username} - Perfil | Mycraft Network`
+  : `Jugador no encontrado | Mycraft Network`;
+---
+
+<BaseLayout title={pageTitle}>
+  <main class="profile-page">
+    {result.success ? (
+      <PlayerProfile player={result.data} />
+    ) : (
+      <PlayerNotFound username={sanitizedIdentifier} />
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .profile-page {
+    min-height: calc(100vh - 150px);
+    padding-top: 1rem;
+  }
+</style>

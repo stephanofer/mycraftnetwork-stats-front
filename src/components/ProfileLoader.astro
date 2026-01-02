@@ -1,0 +1,226 @@
+---
+/**
+ * ProfileLoader Component
+ * 
+ * Loading skeleton for the player profile page.
+ * Shows animated placeholders while content loads.
+ */
+---
+
+<div class="profile-loader">
+  <!-- Hero Skeleton -->
+  <div class="hero-skeleton">
+    <div class="skin-skeleton">
+      <div class="skeleton-pulse"></div>
+    </div>
+    <div class="info-skeleton">
+      <div class="avatar-skeleton skeleton-pulse"></div>
+      <div class="name-skeleton skeleton-pulse"></div>
+      <div class="rank-skeleton skeleton-pulse"></div>
+      <div class="quick-stats-skeleton">
+        <div class="quick-stat-skeleton skeleton-pulse"></div>
+        <div class="quick-stat-skeleton skeleton-pulse"></div>
+        <div class="quick-stat-skeleton skeleton-pulse"></div>
+        <div class="quick-stat-skeleton skeleton-pulse"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Skeleton -->
+  <div class="stats-skeleton">
+    <div class="section-title-skeleton skeleton-pulse"></div>
+    <div class="stats-grid-skeleton">
+      <div class="stat-skeleton skeleton-pulse"></div>
+      <div class="stat-skeleton skeleton-pulse"></div>
+      <div class="stat-skeleton skeleton-pulse"></div>
+      <div class="stat-skeleton skeleton-pulse"></div>
+      <div class="stat-skeleton skeleton-pulse"></div>
+      <div class="stat-skeleton skeleton-pulse"></div>
+    </div>
+  </div>
+
+  <!-- KOTH Skeleton -->
+  <div class="koth-skeleton">
+    <div class="section-title-skeleton skeleton-pulse"></div>
+    <div class="koth-items-skeleton">
+      <div class="koth-item-skeleton skeleton-pulse"></div>
+      <div class="koth-item-skeleton skeleton-pulse"></div>
+      <div class="koth-item-skeleton skeleton-pulse"></div>
+    </div>
+  </div>
+
+  <span class="loading-text">Cargando perfil...</span>
+</div>
+
+<style>
+  .profile-loader {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem 3rem;
+  }
+
+  .skeleton-pulse {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 25%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.03) 75%
+    );
+    background-size: 200% 100%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Hero Skeleton */
+  .hero-skeleton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    border-radius: 1.5rem;
+    border: 1px solid var(--color-divider);
+    background: rgba(20, 20, 20, 0.6);
+    margin-bottom: 2rem;
+
+    @media (width > 768px) {
+      flex-direction: row;
+      padding: 3rem;
+      gap: 3rem;
+    }
+  }
+
+  .skin-skeleton {
+    width: 200px;
+    height: 350px;
+    border-radius: 1rem;
+    overflow: hidden;
+
+    @media (width > 768px) {
+      width: 280px;
+      height: 450px;
+    }
+  }
+
+  .skin-skeleton .skeleton-pulse {
+    width: 100%;
+    height: 100%;
+  }
+
+  .info-skeleton {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+
+    @media (width > 768px) {
+      align-items: flex-start;
+    }
+  }
+
+  .avatar-skeleton {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+  }
+
+  .name-skeleton {
+    width: 200px;
+    height: 40px;
+    border-radius: 8px;
+  }
+
+  .rank-skeleton {
+    width: 80px;
+    height: 28px;
+    border-radius: 6px;
+  }
+
+  .quick-stats-skeleton {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 1rem;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .quick-stat-skeleton {
+    flex: 1;
+    height: 50px;
+    border-radius: 6px;
+  }
+
+  /* Stats Skeleton */
+  .stats-skeleton {
+    padding: 2rem;
+    background: rgba(20, 20, 20, 0.6);
+    border-radius: 1.5rem;
+    border: 1px solid var(--color-divider);
+    margin-bottom: 2rem;
+  }
+
+  .section-title-skeleton {
+    width: 220px;
+    height: 28px;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-grid-skeleton {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+
+    @media (width > 768px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (width > 1024px) {
+      grid-template-columns: repeat(6, 1fr);
+    }
+  }
+
+  .stat-skeleton {
+    height: 120px;
+    border-radius: 1rem;
+  }
+
+  /* KOTH Skeleton */
+  .koth-skeleton {
+    padding: 2rem;
+    background: rgba(20, 20, 20, 0.6);
+    border-radius: 1.5rem;
+    border: 1px solid var(--color-divider);
+    margin-bottom: 2rem;
+  }
+
+  .koth-items-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .koth-item-skeleton {
+    height: 60px;
+    border-radius: 0.75rem;
+  }
+
+  .loading-text {
+    display: block;
+    text-align: center;
+    color: var(--color-opacity);
+    font-size: var(--fs-sm);
+    margin-top: 1rem;
+  }
+</style>

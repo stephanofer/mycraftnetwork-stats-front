@@ -2,7 +2,7 @@
 import { defineConfig, envField, passthroughImageService } from "astro/config";
 import sentry from "@sentry/astro";
 import sitemap from "@astrojs/sitemap";
-import vercel from '@astrojs/vercel/serverless';
+import vercel from '@astrojs/vercel';
 
 
 // https://astro.build/config
