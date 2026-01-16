@@ -84,10 +84,6 @@ function getWinrateColor(winrate: number): string {
           >
         </div>
         <div class="stat-row">
-          <span class="stat-label">K/D Ratio</span>
-          <span class="stat-value kd">{formatKD(player.combat.kd)}</span>
-        </div>
-        <div class="stat-row">
           <span class="stat-label">Racha Actual</span>
           <span class="stat-value streak"
             >{formatNumber(player.combat.streak)}</span
@@ -185,10 +181,6 @@ function getWinrateColor(winrate: number): string {
         <div class="stat-row">
           <span class="stat-label">Muertes</span>
           <span class="stat-value">{formatNumber(player.duels.deaths)}</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">K/D Ratio</span>
-          <span class="stat-value">{formatKD(player.duels.kd)}</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Winrate</span>
