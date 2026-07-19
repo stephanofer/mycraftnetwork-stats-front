@@ -1,0 +1,83 @@
+---
+import PlayerIdentity from "@/components/PlayerIdentity.astro";
+import StatusState from "@/components/StatusState.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getClanProfile } from "@/modules/clans/clan.service";
+import { formatNumber, slugify } from "@/presentation";
+
+export const prerender = false;
+const { id: idParam, slug } = Astro.params;
+const decimalId = idParam !== undefined && /^\d+$/.test(idParam) ? Number(idParam) : NaN;
+const validId = Number.isSafeInteger(decimalId) && decimalId > 0;
+const result = validId ? await getClanProfile(decimalId) : { status: "not-found" as const };
+if (result.status === "ok" && (idParam !== String(result.data.id) || slug !== slugify(result.data.name))) {
+  return Astro.redirect(`/rpg/clans/${result.data.id}/${slugify(result.data.name)}`, 301);
+}
+if (result.status === "not-found") {
+  Astro.response.status = 404;
+  Astro.response.headers.set("Cache-Control", "public, max-age=0, s-maxage=60");
+}
+if (result.status === "unavailable") {
+  Astro.response.status = 503;
+  Astro.response.headers.set("Cache-Control", "no-store");
+}
+const title = result.status === "ok" ? `${result.data.name} · Clan RPG | Mycraft Network` : result.status === "not-found" ? "Clan no encontrado | Mycraft Network" : "Servicio no disponible | Mycraft Network";
+---
+
+<BaseLayout {title} noindex={result.status !== "ok"} description={result.status === "ok" ? `Perfil competitivo del clan ${result.data.name} en RPG Temporada III.` : undefined}>
+  <main class="page shell">
+    {result.status === "ok" ? <article class="clan-profile">
+      <header class="hero panel reveal">
+        <div class="mark">{result.data.prefix || result.data.name.slice(0, 2).toUpperCase()}</div>
+        <div><p class="eyebrow">Clan · RPG Temporada III</p><h1>{result.data.name}</h1><p>Liderado por <strong>{result.data.leader}</strong> · {result.data.privacy === "OPEN" ? "Clan abierto" : result.data.privacy === "CLOSED" ? "Clan cerrado" : result.data.privacy}</p></div>
+        <div class="rank"><small>Posición por kills</small><strong class="number">#{result.data.position}</strong><span>{result.data.distanceToHigher === null ? "Líder o empate" : `${formatNumber(result.data.distanceToHigher)} kills del clan superior`}</span></div>
+      </header>
+
+      {result.data.partialFailures.length > 0 && <aside class="warning" role="status">Algunas skins o rangos no pudieron cargarse. Las estadísticas del clan siguen disponibles.</aside>}
+
+      <section class="metrics reveal" aria-label="Métricas del clan">
+        <div><span>Kills</span><strong class="number accent">{formatNumber(result.data.kills)}</strong></div><div><span>Muertes</span><strong class="number">{formatNumber(result.data.deaths)}</strong></div><div><span>Nivel</span><strong class="number">{formatNumber(result.data.level)}</strong></div><div><span>Ocupación</span><strong class="number">{result.data.members}/{result.data.slots}</strong></div>
+      </section>
+
+      <section class="explanation panel reveal">
+        <span class="number">WHY / {String(result.data.position).padStart(2, "0")}</span>
+        <div><p class="section-kicker">Posición explicada</p><h2 class="section-title">¿Por qué ocupa este puesto?</h2><p>La clasificación usa exclusivamente las <strong>{formatNumber(result.data.kills)} kills</strong> registradas por sus miembros actuales. El nivel y las muertes se muestran como contexto y no forman un power score oculto.</p>{result.data.higherClan && <p>El competidor inmediatamente superior es <a href={`/rpg/clans/${result.data.higherClan.id}/${slugify(result.data.higherClan.name)}`}>{result.data.higherClan.name}</a>, con {formatNumber(result.data.higherClan.kills)} kills.</p>}</div>
+      </section>
+
+      <div class="columns">
+        <section class="members panel reveal" aria-labelledby="members-title">
+          <div class="section-head"><div><p class="section-kicker">Plantilla y aporte</p><h2 id="members-title" class="section-title">Miembros</h2></div><span>{result.data.memberList.length} registrados</span></div>
+          {result.data.memberList.length ? <div class="member-list">{result.data.memberList.map((member) => <div class="member">
+            <PlayerIdentity uuid={member.uuid} nickname={member.nickname} rank={member.rank} skin={member.skin} />
+            <span class="role">{member.role === "leader" ? "Líder" : member.role === "elevated" ? "Oficial" : "Miembro"}</span>
+            <span><small>K / M</small><b class="number">{formatNumber(member.kills)} / {formatNumber(member.deaths)}</b></span>
+            <span class="contribution"><small>Aporte</small><b class="number">{member.contributionPercent.toFixed(1)}%</b><i style={`--share:${Math.min(member.contributionPercent, 100)}%`}></i></span>
+          </div>)}</div> : <p class="empty">No hay miembros disponibles.</p>}
+        </section>
+
+        <aside class="side">
+          <section class="panel reveal"><p class="section-kicker">Mayor contribución</p><h2 class="section-title">Jugador clave</h2>{result.data.topContributor ? <div class="top"><PlayerIdentity uuid={result.data.topContributor.uuid} nickname={result.data.topContributor.nickname} rank={result.data.topContributor.rank} skin={result.data.topContributor.skin} /><strong class="number">{result.data.topContributor.contributionPercent.toFixed(1)}%</strong></div> : <p class="empty">Sin aportes registrados.</p>}</section>
+          <section class="panel reveal"><p class="section-kicker">Diplomacia registrada</p><h2 class="section-title">Alianzas</h2>{result.data.allies.length ? <div class="allies">{result.data.allies.map((ally) => <a href={`/rpg/clans/${ally.id}/${slugify(ally.name)}`}><span>{ally.name}</span><b aria-hidden="true">↗</b></a>)}</div> : <p class="empty">No hay alianzas registradas.</p>}</section>
+        </aside>
+      </div>
+    </article> : <StatusState code={result.status === "not-found" ? 404 : 503} title={result.status === "not-found" ? "Clan no encontrado" : undefined} />}
+  </main>
+</BaseLayout>
+
+<style>
+  .clan-profile { display: grid; gap: 1.25rem; }
+  .hero { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: clamp(1rem, 4vw, 2.5rem); padding: clamp(1.25rem, 4vw, 2.5rem); }
+  .mark { display: grid; width: clamp(75px, 12vw, 120px); aspect-ratio: .85; place-items: center; border: 1px solid var(--line-bright); background: linear-gradient(145deg, rgb(85 214 190 / 18%), transparent); color: var(--cyan); font-family: var(--display); font-size: 1.5rem; clip-path: polygon(0 0,100% 0,100% 78%,50% 100%,0 78%); }
+  h1 { margin: 0; font-family: var(--display); font-size: clamp(2.5rem, 7vw, 5rem); letter-spacing: -.025em; line-height: 1.08; } .hero p:last-child { margin: .7rem 0 0; color: var(--muted); font-size: .8rem; }
+  .rank { min-width: 180px; padding-left: 1.2rem; border-left: 1px solid var(--line); } .rank small, .rank strong, .rank span { display: block; } .rank small { color: var(--muted); } .rank strong { color: var(--gold); font-size: 2.8rem; } .rank span { color: var(--faint); font-size: .68rem; }
+  .warning { padding: .8rem 1rem; border: 1px solid #6e572d; border-radius: 7px; color: #d9c797; font-size: .8rem; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: var(--surface); } .metrics div { padding: 1.2rem; border-right: 1px solid var(--line); } .metrics div:last-child { border: 0; } .metrics span, .metrics strong { display: block; } .metrics span { color: var(--muted); font-size: .68rem; text-transform: uppercase; } .metrics strong { margin-top: .3rem; font-size: 1.5rem; } .metrics .accent { color: var(--accent-bright); }
+  .explanation { display: grid; grid-template-columns: auto 1fr; gap: 1.5rem; padding: 1.4rem; border-left: 3px solid var(--gold); box-shadow: none; } .explanation > span { color: var(--gold); font-size: .7rem; } .explanation p { max-width: 80ch; margin: .5rem 0 0; color: var(--muted); font-size: .78rem; } .explanation a { color: var(--cyan); text-decoration: underline; }
+  .columns { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 1.25rem; } .members, .side section { padding: 1.25rem; box-shadow: none; } .section-head { display: flex; justify-content: space-between; align-items: start; padding-bottom: 1rem; } .section-head > span { color: var(--faint); font-size: .7rem; }
+  .member { display: grid; grid-template-columns: minmax(150px, 1.5fr) .55fr .8fr 1fr; gap: 1rem; align-items: center; min-height: 68px; border-top: 1px solid var(--line); } .member > span { color: var(--muted); font-size: .7rem; } .member small, .member b { display: block; } .member small { color: var(--faint); font-size: .58rem; text-transform: uppercase; } .member .role { color: var(--cyan); text-transform: uppercase; } .contribution i { position: relative; display: block; width: 100%; height: 2px; margin-top: .35rem; background: var(--line); } .contribution i::after { content: ""; position: absolute; width: var(--share); height: 100%; background: var(--accent); }
+  .side { display: grid; align-content: start; gap: 1.25rem; } .top { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .5rem; margin-top: 1rem; } .top > strong { color: var(--accent-bright); font-size: 1.4rem; }
+  .allies { margin-top: 1rem; } .allies a { display: flex; justify-content: space-between; padding: .7rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; } .allies a:hover { color: var(--cyan); }
+  .empty { color: var(--faint); font-size: .75rem; }
+  @media (max-width: 800px) { .hero { grid-template-columns: auto 1fr; } .rank { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); padding: 1rem 0 0; } .columns { grid-template-columns: 1fr; } .metrics { grid-template-columns: 1fr 1fr; } .metrics div:nth-child(2) { border-right: 0; } .metrics div { border-bottom: 1px solid var(--line); } }
+  @media (max-width: 600px) { .mark { display: none; } .hero { grid-template-columns: 1fr; } .member { grid-template-columns: 1fr 1fr; padding: .8rem 0; } .member :global(.identity) { grid-column: 1 / -1; } .explanation { grid-template-columns: 1fr; } }
+</style>

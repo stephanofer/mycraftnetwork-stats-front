@@ -6,7 +6,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check": "astro check",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
@@ -16,11 +18,13 @@
     "astro": "^7.1.1",
     "astro-seo": "^0.8.4",
     "drizzle-orm": "^0.45.2",
+    "gsap": "^3.15.0",
     "mysql2": "^3.23.0"
   },
   "packageManager": "pnpm@11.15.0+sha512.266f8957a30d2be6e9468e5e66bcdedd35a794175f71b067ba8504d686cce1d0c0f429b33c323c3c569ad4891e667574a49ff71d1b89a22cc66f13c65818c578",
   "devDependencies": {
-    "drizzle-kit": "^0.31.10",
-    "wrangler": "^4.20.5"
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

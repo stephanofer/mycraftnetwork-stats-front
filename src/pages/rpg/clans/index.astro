@@ -1,0 +1,48 @@
+---
+import StatusState from "@/components/StatusState.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getClanRanking } from "@/modules/clans/clan.service";
+import { formatNumber, slugify } from "@/presentation";
+
+export const prerender = false;
+const result = await getClanRanking(50);
+if (result.status === "unavailable") {
+  Astro.response.status = 503;
+  Astro.response.headers.set("Cache-Control", "no-store");
+}
+---
+
+<BaseLayout title="Clasificación de clanes · RPG Temporada III | Mycraft Network" description="Leaderboard de clanes por kills en RPG Temporada III." noindex={result.status !== "ok"}>
+  <main class="page shell">
+    <header class="clan-header reveal"><div><p class="eyebrow">RPG · Territorios</p><h1 class="page-title">Clanes en contienda</h1><p class="lede">Clasificación transparente por kills acumuladas. El nivel informa progreso, pero no altera la posición.</p></div><span class="crest number">C<br/>III</span></header>
+    {result.status === "ok" ? (
+      result.data.length > 0 ? <section class="clan-board panel reveal" role="table" aria-label="Ranking de clanes" aria-colcount="6">
+        <div class="head" role="row"><span role="columnheader">Pos.</span><span role="columnheader">Clan</span><span role="columnheader">Kills</span><span role="columnheader">Distancia superior</span><span role="columnheader">Nivel</span><span role="columnheader">Ocupación</span></div>
+        {result.data.map((clan, index) => <a class:list={["clan-row", { podium: clan.position <= 3 }]} role="row" aria-rowindex={index + 2} href={`/rpg/clans/${clan.id}/${slugify(clan.name)}`}>
+          <strong class="position number" role="cell">#{clan.position}</strong>
+          <span class="identity" role="cell"><i>{clan.prefix || clan.name.slice(0, 2).toUpperCase()}</i><span><b>{clan.name}</b><small>{clan.prefix ? `Prefijo ${clan.prefix}` : "Sin prefijo"}</small></span></span>
+          <span class="datum" role="cell"><small>Kills</small><b class="number kills">{formatNumber(clan.kills)}</b></span>
+          <span class="datum" role="cell"><small>Distancia superior</small>{clan.distanceToHigher === null ? "Líder o empate" : `-${formatNumber(clan.distanceToHigher)}`}</span>
+          <span class="datum" role="cell"><small>Nivel</small><b class="number">{formatNumber(clan.level)}</b></span>
+          <span class="datum" role="cell"><small>Ocupación</small>{clan.members} / {clan.slots}</span>
+        </a>)}
+      </section> : <section class="empty panel"><h2>No hay clanes clasificados</h2><p>La temporada todavía no registra actividad válida de clanes.</p></section>
+    ) : <StatusState code={503} />}
+  </main>
+</BaseLayout>
+
+<style>
+  .clan-header { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 2rem; margin-bottom: 2.5rem; }
+  .crest { display: grid; width: 92px; height: 110px; place-items: center; border: 1px solid var(--line-bright); background: linear-gradient(145deg, rgb(85 214 190 / 15%), transparent); color: var(--cyan); font-size: 1.15rem; line-height: 1; clip-path: polygon(0 0,100% 0,100% 78%,50% 100%,0 78%); }
+  .clan-board { overflow: hidden; box-shadow: none; }
+  .head, .clan-row { display: grid; grid-template-columns: 65px minmax(180px, 1.5fr) repeat(4, minmax(90px, .8fr)); gap: 1rem; align-items: center; }
+  .head { padding: .7rem 1rem; color: var(--faint); font-size: .62rem; font-weight: 800; text-transform: uppercase; }
+  .clan-row { min-height: 76px; padding: .65rem 1rem; border-top: 1px solid var(--line); transition: background 180ms ease, padding-left 180ms ease; }
+  .clan-row:hover { padding-left: 1.25rem; background: rgb(85 214 190 / 4%); }
+  .clan-row.podium { background: linear-gradient(90deg, rgb(232 189 99 / 7%), transparent); }
+  .position { color: var(--muted); } .podium .position { color: var(--gold); }
+  .identity { display: flex; min-width: 0; align-items: center; gap: .75rem; } .identity i { display: grid; width: 43px; height: 43px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line-bright); border-radius: 50%; color: var(--cyan); font-family: var(--display); font-size: .7rem; font-style: normal; } .identity b, .identity small { display: block; } .identity b { font-family: var(--display); } .identity small { color: var(--faint); font-size: .65rem; }
+  .datum { color: var(--muted); font-size: .76rem; } .datum small { display: none; } .kills { color: var(--text); }
+  .empty { padding: 4rem 2rem; text-align: center; } .empty h2 { font-family: var(--display); } .empty p { color: var(--muted); }
+  @media (max-width: 800px) { .crest { display: none; } .head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .clan-board { display: grid; gap: .7rem; overflow: visible; border: 0; background: transparent; } .clan-row { grid-template-columns: 42px 1fr 1fr; gap: .8rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); } .identity { grid-column: 2 / -1; } .position { grid-row: span 3; align-self: start; } .datum { display: flex; flex-direction: column; } .datum small { display: block; color: var(--faint); font-size: .55rem; text-transform: uppercase; } }
+</style>

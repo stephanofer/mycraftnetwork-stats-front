@@ -6,13 +6,37 @@ import vercel from '@astrojs/vercel';
 
 
 // https://astro.build/config
-const SECRET_SENTRY_DSN = process.env.SECRET_SENTRY_DSN;
 const SECRET_SENTRY_AUTH_TOKEN = process.env.SECRET_SENTRY_AUTH_TOKEN;
+const SITEMAP_PAGES = new Set([
+  "https://estadisticas.mycraft.es/",
+  "https://estadisticas.mycraft.es/smp",
+  "https://estadisticas.mycraft.es/ranking/rpg/kills",
+  "https://estadisticas.mycraft.es/ranking/rpg/maxstreak",
+  "https://estadisticas.mycraft.es/ranking/rpg/koth",
+  "https://estadisticas.mycraft.es/rpg/clans",
+]);
 
 
 export default defineConfig({
   output: "server",
-  adapter: vercel({}),
+  redirects: {
+    "/dungeon": { status: 301, destination: "/smp" },
+    "/ranking/rpg/kd": { status: 301, destination: "/ranking/rpg/kills" },
+    "/ranking/rpg/elo": { status: 301, destination: "/ranking/rpg/kills" },
+    "/ranking/rpg/level": { status: 301, destination: "/ranking/rpg/kills" },
+    "/ranking/survival": { status: 301, destination: "/ranking/rpg/kills" },
+    "/ranking/survival/kills": { status: 301, destination: "/ranking/rpg/kills" },
+    "/ranking/survival/kd": { status: 301, destination: "/ranking/rpg/kills" },
+    "/ranking/survival/maxstreak": { status: 301, destination: "/ranking/rpg/maxstreak" },
+    "/ranking/survival/elo": { status: 301, destination: "/ranking/rpg/kills" },
+    "/ranking/survival/koth": { status: 301, destination: "/ranking/rpg/koth" },
+    "/ranking/survival/level": { status: 301, destination: "/ranking/rpg/kills" },
+  },
+  adapter: vercel({
+    isr: {
+      expiration: 60 * 15,
+    },
+  }),
   
   image: {
     service: passthroughImageService()
@@ -20,13 +44,8 @@ export default defineConfig({
   
   env: {
     schema: {
-      API_RPG: envField.string({ context: "server", access: "secret" }),
-      API_SURVI: envField.string({ context: "server", access: "secret" }),
-      API_PLAYERS_RPG: envField.string({ context: "server", access: "secret" }),
-      API_PLAYERS_SURVI: envField.string({
-        context: "server",
-        access: "secret",
-      }),
+      RPG_DATABASE_URL: envField.string({ context: "server", access: "secret" }),
+      SKINS_DATABASE_URL: envField.string({ context: "server", access: "secret" }),
       SECRET_SENTRY_DSN: envField.string({
         context: "client",
         access: "public",
@@ -43,6 +62,7 @@ export default defineConfig({
       },
     }),
     sitemap({
+      customPages: [...SITEMAP_PAGES],
       serialize(item) {
         const url = item.url;
         
@@ -60,20 +80,15 @@ export default defineConfig({
           return item;
         }
         
-        if (url.includes('/ranking/survival/')) {
-          item.priority = 0.9;
-          item.changefreq = 'daily' as any; 
-          item.lastmod = new Date().toString();
+        if (url.includes('/rpg/clans')) {
+          item.priority = 0.8;
+          item.changefreq = 'daily' as any;
           return item;
         }
+        return item;
       },
       
-      filter: (page) => {
-        return !page.includes('/admin/') && 
-               !page.includes('/api/') &&
-               !page.includes('/404') &&
-               !page.includes('/500');
-      }
+      filter: (page) => SITEMAP_PAGES.has(page),
     })
   ],
 

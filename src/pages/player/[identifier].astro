@@ -1,40 +1,26 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
 import PlayerProfile from "@/components/PlayerProfile.astro";
-import PlayerNotFound from "@/components/PlayerNotFound.astro";
-import { getPlayerProfile } from "@/services/profile";
-import { isValidPlayerIdentifier } from "@/utils";
+import StatusState from "@/components/StatusState.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getPlayerProfile } from "@/modules/players/player.service";
 
 export const prerender = false;
-
 const { identifier } = Astro.params;
-
-if (!identifier || !isValidPlayerIdentifier(identifier)) {
-  return Astro.redirect("/404");
+const result = await getPlayerProfile(identifier ?? "");
+if (result.status === "ok" && identifier !== result.data.identity.nickname) return Astro.redirect(`/player/${encodeURIComponent(result.data.identity.nickname)}`, 301);
+if (result.status === "not-found") {
+  Astro.response.status = 404;
+  Astro.response.headers.set("Cache-Control", "public, max-age=0, s-maxage=60");
 }
-
-const sanitizedIdentifier = identifier.trim();
-
-const result = await getPlayerProfile(sanitizedIdentifier);
-
-const pageTitle = result.success 
-  ? `${result.data.username} - Perfil | Mycraft Network`
-  : `Jugador no encontrado | Mycraft Network`;
+if (result.status === "unavailable") {
+  Astro.response.status = 503;
+  Astro.response.headers.set("Cache-Control", "no-store");
+}
+const title = result.status === "ok" ? `${result.data.identity.nickname} · Perfil competitivo | Mycraft Network` : result.status === "not-found" ? "Jugador no encontrado | Mycraft Network" : "Servicio no disponible | Mycraft Network";
 ---
 
-<BaseLayout title={pageTitle}>
-  <main class="profile-page">
-    {result.success ? (
-      <PlayerProfile player={result.data} />
-    ) : (
-      <PlayerNotFound username={sanitizedIdentifier} />
-    )}
+<BaseLayout {title} noindex={result.status !== "ok"} description={result.status === "ok" ? `Perfil competitivo de ${result.data.identity.nickname} en RPG Temporada III.` : undefined}>
+  <main class="page shell">
+    {result.status === "ok" ? <PlayerProfile player={result.data} /> : <StatusState code={result.status === "not-found" ? 404 : 503} title={result.status === "not-found" ? "Jugador no encontrado" : undefined} message={result.status === "not-found" ? `No existe un perfil competitivo para “${identifier ?? ""}”. Podés buscar por nickname o UUID.` : undefined} />}
   </main>
 </BaseLayout>
-
-<style>
-  .profile-page {
-    min-height: calc(100vh - 150px);
-    padding-top: 1rem;
-  }
-</style>

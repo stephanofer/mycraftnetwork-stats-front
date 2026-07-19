@@ -27,16 +27,8 @@ export const onRequest: MiddlewareHandler = async ({ request, url }, next) => {
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("X-Frame-Options", "DENY");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  
-  if (!headers.has("Cache-Control")) {
-    if (path.startsWith("/api/")) {
-      headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
-    } else if (path.startsWith("/player/") || path.startsWith("/staff/")) {
-      headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
-    } else {
-      headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
-    }
-  }
+  headers.set("Permissions-Policy", "camera=(), geolocation=(), microphone=()");
+  headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   
   return new Response(response.body, {
     status: response.status,

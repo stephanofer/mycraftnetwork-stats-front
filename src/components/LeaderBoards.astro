@@ -1,273 +1,74 @@
 ---
-import type { Modes, TypesLeaderBoardGlobal } from "@/utils";
-import { getLeaderboard } from "@/services/leaderboard";
-import Trophy from "@/assets/icons/Trophy.svg";
-import { Image } from "astro:assets";
-import Add from "@/assets/icons/Add.svg";
-import Sword from "@/assets/icons/Sword.svg";
-import KD from "@/assets/icons/KD.svg";
-import Elo from "@/assets/icons/Elo.svg";
-import Koth from "@/assets/icons/Koth.svg";
-import MaxStreak from "@/assets/icons/MaxStreak.svg";
-import Level from "@/assets/icons/Level.svg";
-import Subtract from "@/assets/icons/Subtract.svg";
-import { typeLabels } from "@/utils";
+import type { RankingPage } from "@/modules/rankings/ranking.types";
+import { formatNumber, metricLabels } from "@/presentation";
+import PlayerIdentity from "./PlayerIdentity.astro";
 
-interface Props {
-  mode: Modes;
-  type: TypesLeaderBoardGlobal;
-}
-
-const { mode, type } = Astro.props;
-
-const { data } = await getLeaderboard({ mode, type });
-
-
-const trophyColors = {
-  1: "#FFD700",
-  2: "#C0C0C0",
-  3: "#CD7F32",
-};
-
-const typeIconMap: Record<TypesLeaderBoardGlobal, any> = {
-  kills: {
-    component: Sword,
-    color: "#DC143C",
-  },
-  kd: {
-    component: KD,
-    color: "#DC143C",
-  },
-  elo: {
-    component: Elo,
-    color: "#FFD700",
-  },
-  koth: {
-    component: Koth,
-    color: "#DC143C",
-  },
-  maxstreak: {
-    component: MaxStreak,
-    color: "#FF851B",
-  },
-  level: {
-    component: Level,
-    color: "#2ECC40",
-  },
-};
-
-const IconComponent = typeIconMap[type].component;
-const IconColor = typeIconMap[type].color;
-
-// Cache control for performance optimization
-// Astro.response.headers.set("Cache-Control", "public, max-age=30");
+interface Props { ranking: RankingPage; }
+const { ranking } = Astro.props;
+const podium = ranking.entries.filter((entry) => entry.position <= 3);
+const rows = ranking.entries.filter((entry) => entry.position > 3);
 ---
 
-<div class="leaderboard-container">
-  <div class="title">
-    <div class="title-text">
-      <span>#</span>
-      <span class="title-player">Jugador</span>
-      <span>{typeLabels[type]}</span>
-      <span>Actu.</span>
-    </div>
-  </div>
-  <div class="content">
-    {
-      data && data.length > 0 ? (
-        data.map((player) => (
-          <a 
-            href={`/player/${encodeURIComponent(player.userProfile?.lastNickname || '')}`}
-            class={`data ${player.rank <= 3 ? `top-${player.rank}` : ""}`}
-            title={`Ver perfil de ${player.userProfile?.lastNickname || 'jugador'}`}
-          >
-            <span class="rank">
-              {player.rank <= 3 ? (
-                <Trophy
-                  width={48}
-                  height={48}
-                  color={trophyColors[player.rank as keyof typeof trophyColors]}
-                />
-              ) : (
-                <span class="numeric-rank">{player.rank}</span>
-              )}
-            </span>
-            <span class="player">
-              <Image
-                src={
-                  player.userProfile?.skinUUID
-                      ? `https://render.crafty.gg/3d/bust/${player.userProfile.skinUUID}`
-                      : `https://render.crafty.gg/3d/bust/null`
-                }
-                alt={`Avatar de ${player.userProfile?.lastNickname || "DESCONOCIDO"}`}
-                width={60}
-                height={60}
-                class="player-image"
-                decoding="async"
-              />
-              {player.userProfile?.lastNickname}
-            </span>
+{ranking.partialFailures.length > 0 && <p class="partial" role="status">Identidad visual degradada: algunos rangos o skins no pudieron cargarse.</p>}
 
-            <span class="value">
-              <div class="value-content">
-                {IconComponent && (
-                  <IconComponent width={24} height={24} color={IconColor} />
-                )}
-                <span>{player.value}</span>
-              </div>
-            </span>
-            <span class="update">
-              <div class="update-content">
-                {player.dailyDelta > 0 && (
-                  <Add color="#4CAF50" width={24} height={24} />
-                )}
-                {player.dailyDelta < 0 && (
-                  <Subtract color="#F44336" width={24} height={24} />
-                )}
-                <span class="update-value">
-                  {player.dailyDelta < 0
-                    ? Math.abs(player.dailyDelta)
-                    : player.dailyDelta}
-                </span>
-              </div>
-            </span>
-          </a>
-        ))
-      ) : (
-        <div class="no-data">
-          <span>No se encontraron resultados</span>
-          <span class="report-message">
-            ¿Crees que es un error? Repórtalo en nuestro Discord
+{ranking.entries.length === 0 ? (
+  <section class="empty panel"><span class="number">00</span><h2>Sin marcas registradas</h2><p>Esta categoría todavía no tiene actividad competitiva válida.</p></section>
+) : (
+  <>
+    <section class="podium" aria-label="Podio de la categoría">
+      {podium.map((entry) => (
+        <article class={`podium-card place-${entry.position}`}>
+          <span class="place number">#{entry.position}</span>
+          <PlayerIdentity uuid={entry.uuid} nickname={entry.nickname} rank={entry.rank} skin={entry.skin} eager={entry.position === 1} />
+          <strong class="score number">{formatNumber(entry.value)}</strong>
+          <span class="metric">{metricLabels[ranking.metric]}</span>
+          <span class="podium-context">
+            <small>{entry.distanceToHigher === null ? "Líder o empate" : `-${formatNumber(entry.distanceToHigher)} al superior`}</small>
+            <small>Día {entry.dailyDelta > 0 ? "+" : ""}{formatNumber(entry.dailyDelta)} · Semana {entry.weeklyDelta > 0 ? "+" : ""}{formatNumber(entry.weeklyDelta)}</small>
           </span>
+        </article>
+      ))}
+    </section>
+
+    {rows.length > 0 && <section class="board panel" role="table" aria-label={`Ranking de ${metricLabels[ranking.metric]}`} aria-colcount="6">
+      <div class="board-head" role="row"><span role="columnheader">Pos.</span><span role="columnheader">Competidor</span><span role="columnheader">Total</span><span role="columnheader">Distancia superior</span><span role="columnheader">Variación diaria</span><span role="columnheader">Variación semanal</span></div>
+      {rows.map((entry, index) => (
+        <div class="row reveal" role="row" aria-rowindex={index + 2} style={`animation-delay:${Math.min(index * 35, 350)}ms`}>
+          <span class="position number" role="cell">{String(entry.position).padStart(2, "0")}</span>
+          <span class="identity-cell" role="cell"><PlayerIdentity uuid={entry.uuid} nickname={entry.nickname} rank={entry.rank} skin={entry.skin} href={`/player/${encodeURIComponent(entry.nickname)}`} /></span>
+          <span class="datum total" role="cell"><small>Total</small><b class="number">{formatNumber(entry.value)}</b></span>
+          <span class="datum" role="cell"><small>Distancia superior</small>{entry.distanceToHigher === null ? "Líder o empate" : `-${formatNumber(entry.distanceToHigher)}`}</span>
+          <span class:list={["datum delta", { positive: entry.dailyDelta > 0 }]} role="cell"><small>Variación diaria</small>{entry.dailyDelta > 0 ? "+" : ""}{formatNumber(entry.dailyDelta)}</span>
+          <span class:list={["datum delta", { positive: entry.weeklyDelta > 0 }]} role="cell"><small>Variación semanal</small>{entry.weeklyDelta > 0 ? "+" : ""}{formatNumber(entry.weeklyDelta)}</span>
         </div>
-      )
-    }
-  </div>
-</div>
+      ))}
+    </section>}
+  </>
+)}
 
 <style>
-  .leaderboard-container {
-    border: 1px solid var(--color-divider);
-    padding: 1rem;
-    width: 100%;
-    @media (width > 1024px) {
-      padding: 2.5rem;
-    }
-  }
-  .title {
-    font-weight: 500;
-    font-size: var(--fs-sm);
-    opacity: 0.4;
-
-    @media (width > 1024px) {
-      font-size: var(--fs-md);
-    }
-  }
-
-  .title-text,
-  .data {
-    display: grid;
-    padding: 1rem 0.5rem;
-
-    grid-template-columns: 0.8fr 1.5fr 1fr 0.7fr;
-    width: 100%;
-    text-align: left;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  .data {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-    border: 1px solid var(--color-divider);
-    border-radius: 1rem;
-    cursor: pointer;
-
-    transition:
-      background-color 0.2s ease,
-      transform 200ms ease;
-
-    &:hover {
-      background-color: rgb(60 60 60 / 0.3);
-
-      transform: translateX(-1rem);
-    }
-    & span {
-      font-family: "Seven";
-      font-weight: 900;
-      font-size: var(--fs-sm);
-
-      @media (width > 1024px) {
-        font-size: var(--fs-md);
-      }
-    }
-  }
-  .update-content,
-  .value-content,
-  .rank {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-
-  .data .rank .numeric-rank {
-    font-size: var(--fs-xl);
-    margin-left: 0.5rem;
-  }
-
-  .player {
-    text-align: left;
-    display: flex;
-    align-items: center;
-    flex-direction: column-reverse;
-    gap: 0.5rem;
-
-    @media (width > 1024px) {
-      font-size: var(--fs-md);
-      flex-direction: row;
-      gap: 1rem;
-    }
-  }
-
-  .top-1 {
-    background-image: linear-gradient(
-      90deg,
-      rgba(255, 215, 0, 0.15),
-      rgba(255, 215, 0, 0.05) 50%,
-      rgba(255, 215, 0, 0.01) 90%
-    );
-  }
-
-  .top-2 {
-    background-image: linear-gradient(
-      90deg,
-      rgba(192, 192, 192, 0.15),
-      rgba(192, 192, 192, 0.05) 50%,
-      rgba(192, 192, 192, 0.01) 90%
-    );
-  }
-
-  .top-3 {
-    background-image: linear-gradient(
-      90deg,
-      rgba(205, 127, 50, 0.15),
-      rgba(205, 127, 50, 0.05) 50%,
-      rgba(205, 127, 50, 0.01) 90%
-    );
-  }
-
-  .no-data {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 3rem;
-    margin-bottom: 3rem;
-    font-size: var(--fs-md);
-    text-align: center;
-    font-family: "Clash";
-
-    @media (width > 1024px) {
-      font-size: var(--fs-lg);
-    }
-  }
+  .partial { margin: 1rem 0; padding: .7rem 1rem; border-left: 3px solid var(--gold); background: rgb(232 189 99 / 8%); color: #d9c797; font-size: .8rem; }
+  .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin: 2rem 0 1rem; }
+  .podium-card { position: relative; display: grid; grid-template-columns: 1fr auto; gap: .6rem 1rem; align-items: center; min-width: 0; padding: 1.15rem; overflow: hidden; border: 1px solid var(--line); border-top: 2px solid var(--medal, var(--bronze)); border-radius: var(--radius); background: linear-gradient(120deg, color-mix(in srgb, var(--medal) 9%, var(--surface)), var(--surface)); }
+  .podium-card::after { content: attr(class); position: absolute; right: -.3rem; bottom: -1.8rem; color: rgb(255 255 255 / 3%); font-family: var(--numeric); font-size: 6rem; }
+  .place-1 { --medal: var(--gold); } .place-2 { --medal: var(--silver); } .place-3 { --medal: var(--bronze); }
+  .place { color: var(--medal); font-size: 1rem; }
+  .score { color: var(--medal); font-size: 1.35rem; text-align: right; }
+  .metric { grid-column: 2; color: var(--muted); font-size: .65rem; text-align: right; text-transform: uppercase; }
+  .podium-context { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: .5rem; padding-top: .55rem; border-top: 1px solid var(--line); color: var(--faint); font-size: .62rem; }
+  .board { overflow: hidden; box-shadow: none; }
+  .board-head, .row { display: grid; grid-template-columns: 65px minmax(180px, 1.6fr) repeat(4, minmax(100px, .8fr)); align-items: center; gap: 1rem; }
+  .board-head { padding: .7rem 1rem; border-bottom: 1px solid var(--line); color: var(--faint); font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .row { min-height: 69px; padding: .55rem 1rem; border-bottom: 1px solid var(--line); transition: background 150ms ease, padding-left 150ms ease; }
+  .row:last-child { border: 0; }
+  .row:hover { padding-left: 1.25rem; background: rgb(255 255 255 / 3%); }
+  .position { color: var(--muted); font-size: 1.1rem; }
+  .datum { color: var(--muted); font-size: .78rem; font-variant-numeric: tabular-nums; }
+  .datum small { display: none; }
+  .total b { color: var(--text); font-size: 1rem; }
+  .delta.positive { color: var(--success); }
+  .empty { margin-top: 2rem; padding: 4rem 2rem; text-align: center; }
+  .empty span { color: var(--faint); font-size: 3rem; } .empty h2 { margin: .5rem 0; font-family: var(--display); } .empty p { color: var(--muted); }
+  @media (max-width: 900px) { .podium { grid-template-columns: 1fr; } .podium-card { min-height: 86px; } .board-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .board { display: grid; gap: .65rem; overflow: visible; border: 0; background: none; } .row { grid-template-columns: 40px 1fr 1fr; gap: .8rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); } .identity-cell { grid-column: 2 / -1; } .datum { display: flex; flex-direction: column; } .datum small { display: block; margin-bottom: .15rem; color: var(--faint); font-size: .55rem; text-transform: uppercase; } }
+  @media (max-width: 500px) { .row { grid-template-columns: 32px 1fr 1fr; } .position { grid-row: span 3; align-self: start; } }
 </style>

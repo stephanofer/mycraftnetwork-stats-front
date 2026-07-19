@@ -1,23 +1,54 @@
-# Mycraft Network Stats Frontend
+# Mycraft Network Stats
 
-A web application for displaying player statistics and leaderboards for all game modes on the Mycraft Network.
+Competitive statistics hub for Mycraft Network. RPG Season III is the active
+game mode; Survival 26.2 (`smp`) is published as an upcoming, independent mode.
 
-## About
+## Architecture
 
-This is a statistics page that shows player rankings across different game modes:
-- **Survival RPG**: Kills, KD ratio, Max Streak, ELO, Level, King of the Hill
-- **Survival 1.21.6**: Kills, KD ratio, Max Streak, ELO, King of the Hill
+- Astro server output deployed with the Vercel adapter.
+- Full SSR for rankings, player profiles, and clan pages.
+- Vercel ISR with a 15-minute expiration.
+- Direct, server-only MariaDB access through Drizzle and `mysql2`.
+- Separate connection pools for RPG and SkinRestorer data.
+- Repository, service, and presentation boundaries under `src/modules`.
+- Sentry observability with sensitive values excluded.
 
-## Tech Stack
+The application does not expose a public API. Database schemas mirror only the
+plugin tables used by the product, and the application contains no migration or
+write commands. Production credentials must belong to MariaDB users restricted
+to `SELECT` permissions.
 
-- **Framework**: Astro 
-- **Monitoring**: Sentry integration
+## Environment
 
+Create the local environment from `.env.example` and provide:
 
+- `RPG_DATABASE_URL`
+- `SKINS_DATABASE_URL`
+- `SECRET_SENTRY_DSN`
+- `SECRET_SENTRY_AUTH_TOKEN` when source maps must be uploaded
 
-## Tasks
+Database URLs are server-only secrets. Never prefix them with `PUBLIC_` or pass
+them to client scripts.
 
-- [X] Optimize images loading in the Selection GameMode section (using Cloudflare Images)
-- [X] Add robots.txt
-- [X] Finalize sitemap
-- [X] Finalize SEO labels (all pages)
+## Commands
+
+```sh
+pnpm install
+pnpm dev
+pnpm check
+pnpm test
+pnpm build
+```
+
+## Routes
+
+- `/ranking/rpg/kills`
+- `/ranking/rpg/maxstreak`
+- `/ranking/rpg/koth`
+- `/player/[identifier]`
+- `/rpg/clans`
+- `/rpg/clans/[id]/[slug]`
+- `/smp`
+
+Retired RPG metrics and legacy Survival routes redirect permanently to valid
+RPG rankings.

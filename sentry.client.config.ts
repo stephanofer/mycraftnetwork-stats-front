@@ -3,7 +3,7 @@ import { SECRET_SENTRY_DSN } from "astro:env/client";
 
 Sentry.init({
   dsn: SECRET_SENTRY_DSN,
-  sendDefaultPii: true,
+  sendDefaultPii: false,
   integrations: [
     Sentry.browserSessionIntegration(),
     Sentry.replayIntegration(),

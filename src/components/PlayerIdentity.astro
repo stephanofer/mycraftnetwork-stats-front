@@ -1,0 +1,50 @@
+---
+import type { PlayerRankIdentity, RankSummary } from "@/modules/ranks/rank.types";
+import type { ResolvedSkin } from "@/modules/skins/skin.types";
+
+interface Props {
+  uuid: string;
+  nickname: string;
+  rank: RankSummary | PlayerRankIdentity | null;
+  skin: ResolvedSkin;
+  featured?: boolean;
+  href?: string;
+  eager?: boolean;
+}
+
+const { uuid, nickname, rank, skin, featured = false, href = `/player/${encodeURIComponent(nickname)}`, eager = false } = Astro.props;
+const renderId = skin.renderId ?? uuid.replaceAll("-", "");
+const image = featured ? `https://render.crafty.gg/3d/full/${renderId}` : `https://render.crafty.gg/3d/bust/${renderId}`;
+const rankLabel = rank?.dominant.label ?? "Jugador";
+const rankTheme = rank?.dominant.theme ?? "neutral";
+---
+
+<a class:list={["identity", { featured }]} href={href} aria-label={`Ver perfil de ${nickname}`}>
+  <span class="avatar" aria-hidden="true">
+    <img src={image} alt="" width={featured ? 150 : 48} height={featured ? 230 : 48} loading={eager ? "eager" : "lazy"} decoding="async" />
+  </span>
+  <span class="identity-copy">
+    <strong>{nickname}</strong>
+    <span class={`rank rank-${rankTheme}`}>{rankLabel}</span>
+  </span>
+</a>
+
+<style>
+  .identity { display: inline-flex; min-width: 0; align-items: center; gap: .7rem; }
+  .avatar { display: grid; width: 46px; height: 46px; flex: 0 0 auto; place-items: end center; overflow: hidden; border: 1px solid var(--line-bright); border-radius: 7px; background: radial-gradient(circle at 50% 20%, #273042, #10131b); }
+  .avatar img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+  .identity-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: .2rem; }
+  strong { max-width: 100%; overflow: hidden; color: var(--text); font-family: var(--numeric); font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
+  .rank { padding: .08rem .38rem; border: 1px solid var(--line-bright); border-radius: 3px; color: var(--muted); font-size: .57rem; font-weight: 850; letter-spacing: .08em; line-height: 1.35; text-transform: uppercase; }
+  .rank-gold { border-color: #8b6a29; color: #f0c568; }
+  .rank-green { border-color: #287144; color: #70dc91; }
+  .rank-aqua { border-color: #267d80; color: #6ae0dc; }
+  .rank-purple { border-color: #68438d; color: #c792ef; }
+  .rank-red, .rank-dark-red { border-color: #853a3a; color: #ff7770; }
+  .rank-blue { border-color: #315d91; color: #75aef1; }
+  .featured { align-items: flex-end; gap: clamp(1rem, 3vw, 2rem); }
+  .featured .avatar { width: clamp(110px, 18vw, 165px); height: clamp(170px, 28vw, 245px); border: 0; background: transparent; overflow: visible; }
+  .featured strong { font-family: var(--display); font-size: clamp(2rem, 7vw, 4.5rem); letter-spacing: -.04em; }
+  .featured .rank { padding: .25rem .55rem; font-size: .7rem; }
+  @media (max-width: 520px) { .featured { align-items: center; } .featured .avatar { width: 90px; height: 145px; } }
+</style>
