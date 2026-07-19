@@ -49,6 +49,7 @@ export async function getClanProfile(id: number): Promise<DataResult<ClanProfile
         ...raw.clan,
         position: position.position,
         distanceToHigher: position.distanceToHigher,
+        tiedAtPosition: position.tiedAtPosition,
         higherClan: position.higherClan,
         memberList,
         allies: raw.allies,

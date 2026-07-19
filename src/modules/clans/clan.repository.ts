@@ -118,10 +118,11 @@ export async function findClanProfile(id: number): Promise<RawClanProfile | null
 export async function findClanPosition(kills: number): Promise<{
   position: number;
   distanceToHigher: number | null;
+  tiedAtPosition: boolean;
   higherClan: { id: number; name: string; kills: number } | null;
 }> {
   return observeQuery("clans.position", "rpg", async () => {
-    const [positionResult, higherRows] = await Promise.all([
+    const [positionResult, higherRows, tieRows] = await Promise.all([
       rpgDb.execute(sql`SELECT COUNT(DISTINCT kills) + 1 AS position FROM clans WHERE kills > ${kills}`),
       rpgDb
         .select({ id: clans.id, name: clans.name, kills: clans.kills })
@@ -129,12 +130,17 @@ export async function findClanPosition(kills: number): Promise<{
         .where(sql`${clans.kills} = (SELECT MIN(kills) FROM clans WHERE kills > ${kills})`)
         .orderBy(clans.id)
         .limit(1),
+      rpgDb
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(clans)
+        .where(eq(clans.kills, kills)),
     ]);
     const positionRow = (positionResult[0] as unknown as Array<{ position: number }>)[0];
     const higher = higherRows[0];
     return {
       position: Number(positionRow.position),
       distanceToHigher: higher ? higher.kills - kills : null,
+      tiedAtPosition: Number(tieRows[0]?.count ?? 0) > 1,
       higherClan: higher?.name ? higher as { id: number; name: string; kills: number } : null,
     };
   });

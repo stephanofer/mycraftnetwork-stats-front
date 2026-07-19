@@ -29,6 +29,7 @@ export interface ClanMember {
 export interface ClanProfile extends ClanRankingEntry {
   leader: string;
   privacy: string;
+  tiedAtPosition: boolean;
   memberList: ClanMember[];
   allies: Array<{ id: number; name: string }>;
   topContributor: ClanMember | null;
