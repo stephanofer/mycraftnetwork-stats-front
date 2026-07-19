@@ -5,10 +5,10 @@ const CONFIG = {
 };
 
 export const onRequest: MiddlewareHandler = async ({ request, url }, next) => {
-  const userAgent = request.headers.get("user-agent")?.toLowerCase() || "";
   const path = url.pathname;
   
   if (path.startsWith("/api/")) {
+    const userAgent = request.headers.get("user-agent")?.toLowerCase() || "";
     const isBlocked = CONFIG.blockedUserAgents.some(blocked => 
       userAgent.includes(blocked)
     );

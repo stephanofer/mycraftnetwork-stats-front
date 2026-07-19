@@ -9,15 +9,18 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.4.1",
-    "@astrojs/vercel": "^9.0.0",
+    "@astrojs/sitemap": "^3.7.3",
+    "@astrojs/vercel": "^11.0.3",
     "@sentry/astro": "^9.15.0",
     "@vercel/analytics": "^1.5.0",
-    "astro": "^5.10.1",
-    "astro-seo": "^0.8.4"
+    "astro": "^7.1.1",
+    "astro-seo": "^0.8.4",
+    "drizzle-orm": "^0.45.2",
+    "mysql2": "^3.23.0"
   },
-  "packageManager": "pnpm@10.8.1+sha512.c50088ba998c67b8ca8c99df8a5e02fd2ae2e2b29aaf238feaa9e124248d3f48f9fb6db2424949ff901cffbb5e0f0cc1ad6aedb602cd29450751d11c35023677",
+  "packageManager": "pnpm@11.15.0+sha512.266f8957a30d2be6e9468e5e66bcdedd35a794175f71b067ba8504d686cce1d0c0f429b33c323c3c569ad4891e667574a49ff71d1b89a22cc66f13c65818c578",
   "devDependencies": {
+    "drizzle-kit": "^0.31.10",
     "wrangler": "^4.20.5"
   }
 }
