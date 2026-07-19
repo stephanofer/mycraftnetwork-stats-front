@@ -1,5 +1,5 @@
-<section class="modes" aria-labelledby="modes-title">
-    <div class="intro reveal">
+<section class="modes" aria-labelledby="modes-title" data-modes>
+    <div class="intro">
         <p class="eyebrow">Centro competitivo</p>
         <h1 id="modes-title">Modalidades</h1>
         <p>
@@ -8,7 +8,7 @@
         </p>
     </div>
     <div class="mode-grid">
-        <a class="mode rpg reveal" href="/ranking/rpg/kills">
+        <a class="mode rpg" href="/ranking/rpg/kills">
             <img
                 src="/images/image1.webp"
                 alt="Paisaje de la modalidad RPG"
@@ -28,7 +28,7 @@
                 <b>Entrar a competir <span aria-hidden="true">↗</span></b>
             </span>
         </a>
-        <a class="mode smp reveal" href="/smp">
+        <a class="mode smp" href="/smp">
             <img
                 src="/images/image2.webp"
                 alt="Paisaje de la modalidad Survival 26.2"
@@ -49,6 +49,120 @@
         </a>
     </div>
 </section>
+
+<script>
+    import gsap from "gsap";
+
+    const section = document.querySelector<HTMLElement>("[data-modes]");
+
+    if (section) {
+        const introItems = section.querySelectorAll<HTMLElement>(
+            ".intro > *",
+        );
+        const cards = Array.from(
+            section.querySelectorAll<HTMLElement>(".mode"),
+        );
+        const media = gsap.matchMedia();
+
+        media.add("(prefers-reduced-motion: no-preference)", () => {
+            const entrance = gsap.timeline({
+                defaults: { duration: 0.38, ease: "power2.out" },
+            });
+
+            entrance
+                .from(introItems, {
+                    autoAlpha: 0,
+                    y: 12,
+                    stagger: 0.05,
+                    clearProps: "opacity,visibility,transform",
+                })
+                .from(
+                    cards,
+                    {
+                        autoAlpha: 0,
+                        y: 16,
+                        duration: 0.46,
+                        stagger: 0.07,
+                        clearProps: "opacity,visibility,transform",
+                    },
+                    "-=0.2",
+                );
+        });
+
+        media.add(
+            "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+            () => {
+                const cleanups = cards.map((card) => {
+                    const image = card.querySelector<HTMLImageElement>("img");
+                    const arrow = card.querySelector<HTMLElement>(
+                        ".copy b span",
+                    );
+
+                    const enter = () => {
+                        gsap.to(card, {
+                            y: -5,
+                            duration: 0.22,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                        gsap.to(image, {
+                            scale: 1.045,
+                            duration: 0.32,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                        gsap.to(arrow, {
+                            x: 3,
+                            y: -3,
+                            duration: 0.2,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                    };
+                    const leave = () => {
+                        gsap.to(card, {
+                            y: 0,
+                            duration: 0.26,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                        gsap.to(image, {
+                            scale: 1,
+                            duration: 0.3,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                        gsap.to(arrow, {
+                            x: 0,
+                            y: 0,
+                            duration: 0.22,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                    };
+                    const blur = (event: FocusEvent) => {
+                        if (!card.contains(event.relatedTarget as Node)) leave();
+                    };
+
+                    card.addEventListener("mouseenter", enter);
+                    card.addEventListener("mouseleave", leave);
+                    card.addEventListener("focus", enter);
+                    card.addEventListener("blur", blur);
+
+                    return () => {
+                        card.removeEventListener("mouseenter", enter);
+                        card.removeEventListener("mouseleave", leave);
+                        card.removeEventListener("focus", enter);
+                        card.removeEventListener("blur", blur);
+                        gsap.killTweensOf([card, image, arrow]);
+                    };
+                });
+
+                return () => cleanups.forEach((cleanup) => cleanup());
+            },
+        );
+    }
+</script>
 
 <style>
     .modes {
@@ -96,13 +210,6 @@
         border-radius: var(--radius);
         background: var(--surface);
         box-shadow: var(--shadow);
-        transition:
-            transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
-            border-color 300ms ease;
-    }
-    .mode:hover {
-        transform: translateY(-6px);
-        border-color: var(--line-bright);
     }
     .mode img {
         position: absolute;
@@ -110,13 +217,7 @@
         height: 100%;
         object-fit: cover;
         filter: saturate(0.65) contrast(1.15);
-        transition:
-            transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
-            filter 300ms ease;
-    }
-    .mode:hover img {
-        transform: scale(1.035);
-        filter: saturate(0.9) contrast(1.1);
+        transform-origin: center;
     }
     .shade {
         position: absolute;
@@ -149,8 +250,6 @@
         height: 7px;
         border-radius: 50%;
         background: var(--success);
-        box-shadow: 0 0 12px var(--success);
-        animation: signal 2s ease-in-out infinite;
     }
     .copy {
         position: absolute;
@@ -184,11 +283,6 @@
         margin-top: 1.2rem;
         color: var(--text);
         font-size: 0.78rem;
-    }
-    @keyframes signal {
-        50% {
-            opacity: 0.45;
-        }
     }
     @media (max-width: 760px) {
         .intro {
