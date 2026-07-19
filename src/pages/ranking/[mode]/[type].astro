@@ -2,42 +2,153 @@
 import LeaderBoards from "@/components/LeaderBoards.astro";
 import StatusState from "@/components/StatusState.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { getRanking, isRankingMetric } from "@/modules/rankings/ranking.service";
+import {
+    getRanking,
+    isRankingMetric,
+} from "@/modules/rankings/ranking.service";
 import { metricLabels } from "@/presentation";
 
 export const prerender = false;
 const { mode, type } = Astro.params;
-if (mode !== "rpg" || !type || !isRankingMetric(type)) return Astro.redirect("/ranking/rpg/kills", 301);
+if (mode !== "rpg" || !type || !isRankingMetric(type))
+    return Astro.redirect("/ranking/rpg/kills", 301);
 const result = await getRanking(type, 50);
 if (result.status === "unavailable") {
-  Astro.response.status = 503;
-  Astro.response.headers.set("Cache-Control", "no-store");
+    Astro.response.status = 503;
+    Astro.response.headers.set("Cache-Control", "no-store");
 }
 const title = `${metricLabels[type]} · RPG Temporada III | Mycraft Network`;
 ---
 
-<BaseLayout {title} description={`Clasificación de ${metricLabels[type]} de RPG Temporada III.`} noindex={result.status !== "ok"}>
-  <main class="page shell">
-    <header class="ranking-header reveal">
-      <div><p class="eyebrow">RPG · Temporada III</p><h1 class="page-title">Tabla de contendientes</h1><p class="lede">Marcas acumuladas durante la temporada. Los empates comparten posición.</p></div>
-      <div class="season"><span>Temporada</span><strong class="number">03</strong><small>ACTIVA</small></div>
-    </header>
-    <nav class="tabs" aria-label="Categorías de ranking">
-      {(["kills", "maxstreak", "koth"] as const).map((metric) => <a href={`/ranking/rpg/${metric}`} aria-current={metric === type ? "page" : undefined}>{metricLabels[metric]}</a>)}
-    </nav>
-    {result.status === "ok" ? <LeaderBoards ranking={result.data} /> : <StatusState code={503} />}
-  </main>
+<BaseLayout
+    {title}
+    description={`Clasificación de ${metricLabels[type]} de RPG Temporada III.`}
+    noindex={result.status !== "ok"}
+>
+    <main class="page shell">
+        <header class="ranking-header reveal">
+            <div>
+                <p class="eyebrow">RPG · Temporada III</p><h1
+                    class="page-title"
+                >
+                    Tabla de contendientes
+                </h1><p class="lede">
+                    Marcas acumuladas durante la temporada. Los empates
+                    comparten posición.
+                </p>
+            </div>
+            <div class="season">
+                <span>Temporada</span><strong class="number">03</strong>
+            </div>
+        </header>
+        <nav class="tabs" aria-label="Categorías de ranking">
+            {
+                (["kills", "maxstreak", "koth"] as const).map((metric) => (
+                    <a
+                        href={`/ranking/rpg/${metric}`}
+                        aria-current={metric === type ? "page" : undefined}
+                    >
+                        {metric === "koth" ? "Koth" : metricLabels[metric]}
+                    </a>
+                ))
+            }
+            <a href="/rpg/clans">Clanes</a>
+        </nav>
+        {
+            result.status === "ok" ? (
+                <LeaderBoards ranking={result.data} />
+            ) : (
+                <StatusState code={503} />
+            )
+        }
+    </main>
 </BaseLayout>
 
 <style>
-  .ranking-header { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 2rem; }
-  .season { display: grid; grid-template-columns: auto auto; align-items: end; gap: 0 .7rem; padding-left: 1.2rem; border-left: 1px solid var(--line-bright); }
-  .season span { grid-column: 1 / -1; color: var(--muted); font-size: .65rem; text-transform: uppercase; }
-  .season strong { font-size: 3.8rem; line-height: .85; }
-  .season small { color: var(--success); font-weight: 850; }
-  .tabs { display: flex; gap: .25rem; margin-top: 2.5rem; overflow-x: auto; border-bottom: 1px solid var(--line); }
-  .tabs a { min-width: max-content; padding: .8rem 1rem; border-bottom: 2px solid transparent; color: var(--muted); font-size: .78rem; font-weight: 800; }
-  .tabs a:hover { color: var(--text); }
-  .tabs a[aria-current="page"] { border-color: var(--accent); color: var(--text); background: linear-gradient(0deg, rgb(228 87 46 / 10%), transparent); }
-  @media (max-width: 600px) { .ranking-header { grid-template-columns: 1fr; } .season { display: none; } }
+    .ranking-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 2rem;
+    }
+    .ranking-header .page-title {
+        font-size: clamp(2rem, 4.5vw, 3.6rem);
+    }
+    .ranking-header .lede {
+        font-size: clamp(0.86rem, 1.5vw, 0.95rem);
+    }
+    .season {
+        display: grid;
+        grid-template-columns: auto auto;
+        align-items: end;
+        gap: 0 0.7rem;
+        padding-left: 1.2rem;
+        border-left: 1px solid var(--line-bright);
+    }
+    .season span {
+        grid-column: 1 / -1;
+        color: var(--muted);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+    }
+    .season strong {
+        font-size: 3.8rem;
+        line-height: 0.85;
+    }
+    .season small {
+        color: var(--success);
+        font-weight: 850;
+    }
+    .tabs {
+        display: flex;
+        gap: 0.25rem;
+        margin-top: 2.5rem;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--line);
+    }
+    .tabs a {
+        min-width: max-content;
+        padding: 0.8rem 1rem;
+        border-bottom: 2px solid transparent;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+    }
+    .tabs a:hover {
+        color: var(--text);
+    }
+    .tabs a[aria-current="page"] {
+        border-color: var(--accent);
+        color: var(--text);
+        background: linear-gradient(0deg, rgb(228 87 46 / 10%), transparent);
+    }
+    @media (max-width: 600px) {
+        .ranking-header {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            gap: 1.25rem;
+            text-align: center;
+        }
+        .ranking-header .page-title {
+            font-size: clamp(2rem, 10vw, 2.7rem);
+        }
+        .ranking-header .lede {
+            display: none;
+        }
+        .season {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            justify-self: center;
+            gap: 0.3rem;
+            width: fit-content;
+            padding: 1rem 1.25rem 0;
+            border-top: 1px solid var(--line);
+            border-left: 0;
+            text-align: center;
+        }
+        .season span,
+        .season strong {
+            grid-column: 1;
+        }
+    }
 </style>

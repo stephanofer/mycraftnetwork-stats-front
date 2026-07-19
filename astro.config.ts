@@ -9,7 +9,6 @@ import vercel from '@astrojs/vercel';
 const SECRET_SENTRY_AUTH_TOKEN = process.env.SECRET_SENTRY_AUTH_TOKEN;
 const SITEMAP_PAGES = new Set([
   "https://estadisticas.mycraft.es/",
-  "https://estadisticas.mycraft.es/smp",
   "https://estadisticas.mycraft.es/ranking/rpg/kills",
   "https://estadisticas.mycraft.es/ranking/rpg/maxstreak",
   "https://estadisticas.mycraft.es/ranking/rpg/koth",
@@ -20,7 +19,8 @@ const SITEMAP_PAGES = new Set([
 export default defineConfig({
   output: "server",
   redirects: {
-    "/dungeon": { status: 301, destination: "/smp" },
+    "/dungeon": { status: 301, destination: "/" },
+    "/smp": { status: 301, destination: "/" },
     "/ranking/rpg/kd": { status: 301, destination: "/ranking/rpg/kills" },
     "/ranking/rpg/elo": { status: 301, destination: "/ranking/rpg/kills" },
     "/ranking/rpg/level": { status: 301, destination: "/ranking/rpg/kills" },

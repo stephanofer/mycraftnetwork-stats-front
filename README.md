@@ -48,7 +48,6 @@ pnpm build
 - `/player/[identifier]`
 - `/rpg/clans`
 - `/rpg/clans/[id]/[slug]`
-- `/smp`
 
 Retired RPG metrics and legacy Survival routes redirect permanently to valid
 RPG rankings.
