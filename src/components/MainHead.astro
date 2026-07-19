@@ -2,22 +2,39 @@
 import "@/styles/global.css";
 import { SEO } from "astro-seo";
 
-interface Props { title?: string; description?: string; canonicalUrl?: string; noindex?: boolean; }
+interface Props {
+    title?: string;
+    description?: string;
+    canonicalUrl?: string;
+    noindex?: boolean;
+}
 const {
-  title = "Centro competitivo | Mycraft Network",
-  description = "Rankings, perfiles competitivos y clanes de RPG Temporada III en Mycraft Network.",
-  canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href,
-  noindex = false,
+    title = "Centro competitivo | Mycraft Network",
+    description = "Rankings, perfiles competitivos y clanes de RPG Temporada III en Mycraft Network.",
+    canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
+        .href,
+    noindex = false,
 } = Astro.props;
-const image = "https://imagedelivery.net/avcZT-oq9_igVytxtuW9-A/a00384b9-c99b-490a-76a6-b032ab357500/format=jpg";
+const image =
+    "https://imagedelivery.net/avcZT-oq9_igVytxtuW9-A/a00384b9-c99b-490a-76a6-b032ab357500/format=jpg";
 ---
 
 <SEO
-  {title}
-  {description}
-  canonical={canonicalUrl}
-  noindex={noindex}
-  nofollow={noindex}
-  openGraph={{ basic: { title, type: "website", image, url: canonicalUrl }, optional: { description, siteName: "Mycraft Network" } }}
-  twitter={{ card: "summary_large_image", site: "@mycraftnetwork", creator: "@stephanofer_", title, description, image }}
+    {title}
+    {description}
+    canonical={canonicalUrl}
+    noindex={noindex}
+    nofollow={noindex}
+    openGraph={{
+        basic: { title, type: "website", image, url: canonicalUrl },
+        optional: { description, siteName: "Mycraft Network" },
+    }}
+    twitter={{
+        card: "summary_large_image",
+        site: "@mycraftnetwork",
+        creator: "@stephanofer_",
+        title,
+        description,
+        image,
+    }}
 />

@@ -56,13 +56,13 @@
     const section = document.querySelector<HTMLElement>("[data-modes]");
 
     if (section) {
-        const introItems = section.querySelectorAll<HTMLElement>(
-            ".intro > *",
-        );
+        const introItems = section.querySelectorAll<HTMLElement>(".intro > *");
         const cards = Array.from(
             section.querySelectorAll<HTMLElement>(".mode"),
         );
-        const hoverCards = cards.filter((card) => !card.classList.contains("smp"));
+        const hoverCards = cards.filter(
+            (card) => !card.classList.contains("smp"),
+        );
         const media = gsap.matchMedia();
 
         media.add("(prefers-reduced-motion: no-preference)", () => {
@@ -95,9 +95,8 @@
             () => {
                 const cleanups = hoverCards.map((card) => {
                     const image = card.querySelector<HTMLImageElement>("img");
-                    const arrow = card.querySelector<HTMLElement>(
-                        ".copy b span",
-                    );
+                    const arrow =
+                        card.querySelector<HTMLElement>(".copy b span");
 
                     const enter = () => {
                         gsap.to(card, {
@@ -142,7 +141,8 @@
                         });
                     };
                     const blur = (event: FocusEvent) => {
-                        if (!card.contains(event.relatedTarget as Node)) leave();
+                        if (!card.contains(event.relatedTarget as Node))
+                            leave();
                     };
 
                     card.addEventListener("mouseenter", enter);

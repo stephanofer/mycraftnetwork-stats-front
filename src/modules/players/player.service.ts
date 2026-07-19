@@ -42,16 +42,20 @@ export async function getPlayerProfile(identifier: string): Promise<DataResult<P
       return { status: "not-found" };
     }
 
-    const [combatResult, rankingsResult, kothResult, duelsResult, clanResult, ranksResult, skinsResult] =
+    const [combatResult, rankingsResult, kothResult, duelsResult, clanResult] =
       await Promise.allSettled([
         findCombatStats(identity.uuid),
         findPlayerRankingPositions(identity.uuid),
         findKothProfile(identity.uuid),
         findDuelProfile(identity.uuid),
         findPlayerClan(identity.uuid),
+      ]);
+    // Profile repositories fan out internally. Resolve decorations separately so
+    // one request cannot overflow the deliberately small RPG connection queue.
+    const [ranksResult, skinsResult] = await Promise.allSettled([
         getRanksForPlayers([identity.uuid]),
         getSkinsForPlayers([identity.uuid]),
-      ]);
+    ]);
     const unavailableSections: PlayerDataSection[] = [];
     const failures: PlayerPartialFailure[] = [];
     const combat = sectionValue(combatResult, "combat", unavailableSections, failures);

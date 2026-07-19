@@ -124,17 +124,9 @@ const path = Astro.url.pathname;
                     },
                     reduceMotion ? 0 : 0.045,
                 )
-                .to(
-                    menuBars[0],
-                    { y: 7, rotation: 45, duration },
-                    0,
-                )
+                .to(menuBars[0], { y: 7, rotation: 45, duration }, 0)
                 .to(menuBars[1], { autoAlpha: 0, duration }, 0)
-                .to(
-                    menuBars[2],
-                    { y: -7, rotation: -45, duration },
-                    0,
-                );
+                .to(menuBars[2], { y: -7, rotation: -45, duration }, 0);
 
             if (toggle.getAttribute("aria-expanded") === "true") {
                 menuTimeline.progress(1);

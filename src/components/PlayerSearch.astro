@@ -1,41 +1,131 @@
 <form class="player-search" id="player-search" novalidate>
-  <label class="sr-only" for="player-identifier">Buscar por nickname o UUID</label>
-  <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="m21 19.6-5.2-5.2a7.5 7.5 0 1 0-1.4 1.4l5.2 5.2zM5 10a5 5 0 1 1 10 0 5 5 0 0 1-10 0"/></svg>
-  <input id="player-identifier" name="identifier" type="search" placeholder="Nickname o UUID" autocomplete="off" autocapitalize="none" spellcheck="false" required />
-  <button type="submit" aria-label="Buscar jugador">
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none">
-      <path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
-  </button>
-  <span class="error" id="search-error" aria-live="polite"></span>
+    <label class="sr-only" for="player-identifier"
+        >Buscar por nickname o UUID</label
+    >
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17"
+        ><path
+            fill="currentColor"
+            d="m21 19.6-5.2-5.2a7.5 7.5 0 1 0-1.4 1.4l5.2 5.2zM5 10a5 5 0 1 1 10 0 5 5 0 0 1-10 0"
+        ></path></svg
+    >
+    <input
+        id="player-identifier"
+        name="identifier"
+        type="search"
+        placeholder="Nickname o UUID"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        required
+    />
+    <button type="submit" aria-label="Buscar jugador">
+        <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+        >
+            <path
+                d="M7 17 17 7M9 7h8v8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+        </svg>
+    </button>
+    <span class="error" id="search-error" aria-live="polite"></span>
 </form>
 
 <script>
-  const form = document.querySelector<HTMLFormElement>("#player-search");
-  const input = document.querySelector<HTMLInputElement>("#player-identifier");
-  const error = document.querySelector<HTMLSpanElement>("#search-error");
-  form?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const value = input?.value.trim() ?? "";
-    const nickname = /^[A-Za-z0-9_]{3,16}$/.test(value);
-    const uuid = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(value);
-    if (!nickname && !uuid) {
-      if (error) error.textContent = "Introduce un nickname o UUID válido.";
-      input?.setAttribute("aria-invalid", "true");
-      return;
-    }
-    window.location.assign(`/player/${encodeURIComponent(value)}`);
-  });
-  input?.addEventListener("input", () => { if (error) error.textContent = ""; input.removeAttribute("aria-invalid"); });
+    const form = document.querySelector<HTMLFormElement>("#player-search");
+    const input =
+        document.querySelector<HTMLInputElement>("#player-identifier");
+    const error = document.querySelector<HTMLSpanElement>("#search-error");
+    form?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const value = input?.value.trim() ?? "";
+        const nickname = /^[A-Za-z0-9_]{3,16}$/.test(value);
+        const uuid =
+            /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(
+                value,
+            );
+        if (!nickname && !uuid) {
+            if (error)
+                error.textContent = "Introduce un nickname o UUID válido.";
+            input?.setAttribute("aria-invalid", "true");
+            return;
+        }
+        window.location.assign(`/player/${encodeURIComponent(value)}`);
+    });
+    input?.addEventListener("input", () => {
+        if (error) error.textContent = "";
+        input.removeAttribute("aria-invalid");
+    });
 </script>
 
 <style>
-  .player-search { position: relative; display: flex; min-width: 0; height: 40px; align-items: center; gap: .5rem; padding-left: .75rem; border: 1px solid var(--line); border-radius: 7px; background: #0b0e14; color: var(--faint); }
-  input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-size: .78rem; }
-  button { display: grid; width: 44px; flex: 0 0 44px; align-self: stretch; place-items: center; padding: 0; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--accent-bright); cursor: pointer; }
-  button svg { display: block; }
-  .player-search:focus-within { border-color: var(--cyan); }
-  .error { position: absolute; top: calc(100% + 5px); left: 0; width: 100%; padding: .4rem .6rem; border-radius: 5px; background: #231113; color: #ffaaa6; font-size: .7rem; box-shadow: var(--shadow); }
-  .error:empty { display: none; }
-  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .player-search {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        height: 40px;
+        align-items: center;
+        gap: 0.5rem;
+        padding-left: 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #0b0e14;
+        color: var(--faint);
+    }
+    input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text);
+        font-size: 0.78rem;
+    }
+    button {
+        display: grid;
+        width: 44px;
+        flex: 0 0 44px;
+        align-self: stretch;
+        place-items: center;
+        padding: 0;
+        border: 0;
+        border-left: 1px solid var(--line);
+        background: transparent;
+        color: var(--accent-bright);
+        cursor: pointer;
+    }
+    button svg {
+        display: block;
+    }
+    .player-search:focus-within {
+        border-color: var(--cyan);
+    }
+    .error {
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 0;
+        width: 100%;
+        padding: 0.4rem 0.6rem;
+        border-radius: 5px;
+        background: #231113;
+        color: #ffaaa6;
+        font-size: 0.7rem;
+        box-shadow: var(--shadow);
+    }
+    .error:empty {
+        display: none;
+    }
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+    }
 </style>

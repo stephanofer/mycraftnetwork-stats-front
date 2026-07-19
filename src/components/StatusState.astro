@@ -1,20 +1,71 @@
 ---
-interface Props { code: 404 | 503; title?: string; message?: string; compact?: boolean; }
-const { code, compact = false, title = code === 404 ? "No encontramos ese registro" : "La competición está en pausa", message = code === 404 ? "Revisa el enlace o vuelve al centro competitivo." : "La fuente de datos no está disponible temporalmente. No mostraremos cifras incompletas como si fueran reales." } = Astro.props;
+interface Props {
+    code: 404 | 503;
+    title?: string;
+    message?: string;
+    compact?: boolean;
+}
+const {
+    code,
+    compact = false,
+    title = code === 404
+        ? "No encontramos ese registro"
+        : "La competición está en pausa",
+    message = code === 404
+        ? "Revisa el enlace o vuelve al centro competitivo."
+        : "La fuente de datos no está disponible temporalmente. No mostraremos cifras incompletas como si fueran reales.",
+} = Astro.props;
 ---
 
-<section class:list={["status", "panel", { compact }]} aria-labelledby={`status-${code}`}>
-  <span class="code number">{code}</span>
-  <div><p class="eyebrow">Estado del sistema</p><h1 id={`status-${code}`}>{title}</h1><p>{message}</p></div>
-  <a class="button" href="/ranking/rpg/kills">Volver a rankings</a>
+<section
+    class:list={["status", "panel", { compact }]}
+    aria-labelledby={`status-${code}`}
+>
+    <span class="code number">{code}</span>
+    <div>
+        <p class="eyebrow">Estado del sistema</p><h1 id={`status-${code}`}>
+            {title}
+        </h1><p>{message}</p>
+    </div>
+    <a class="button" href="/ranking/rpg/kills">Volver a rankings</a>
 </section>
 
 <style>
-  .status { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: clamp(1rem, 4vw, 3rem); padding: clamp(1.25rem, 4vw, 2.5rem); }
-  .code { color: var(--accent); font-size: clamp(3rem, 10vw, 7rem); line-height: .8; }
-  h1 { margin: 0; font-family: var(--display); font-size: clamp(1.5rem, 4vw, 2.6rem); }
-  p:last-child { max-width: 62ch; margin: .5rem 0 0; color: var(--muted); }
-  .compact { grid-template-columns: auto 1fr; box-shadow: none; }
-  .compact .button { display: none; }
-  @media (max-width: 700px) { .status { grid-template-columns: 1fr; } .code { margin-bottom: .5rem; } }
+    .status {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: clamp(1rem, 4vw, 3rem);
+        padding: clamp(1.25rem, 4vw, 2.5rem);
+    }
+    .code {
+        color: var(--accent);
+        font-size: clamp(3rem, 10vw, 7rem);
+        line-height: 0.8;
+    }
+    h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(1.5rem, 4vw, 2.6rem);
+    }
+    p:last-child {
+        max-width: 62ch;
+        margin: 0.5rem 0 0;
+        color: var(--muted);
+    }
+    .compact {
+        grid-template-columns: auto 1fr;
+        box-shadow: none;
+    }
+    .compact .button {
+        display: none;
+    }
+    @media (max-width: 700px) {
+        .status {
+            grid-template-columns: 1fr;
+        }
+        .code {
+            margin-bottom: 0.5rem;
+        }
+    }
 </style>

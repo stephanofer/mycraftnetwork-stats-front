@@ -39,23 +39,22 @@ const entries = ranking.entries.map((entry) => ({
     ) : (
         <section
             class="board panel"
+            data-ranking-board
             role="table"
             aria-label={`Ranking de ${metricLabels[ranking.metric]}`}
-            aria-colcount="5"
+            aria-colcount="4"
         >
-            <div class="board-head" role="row">
+            <div class="board-head" role="row" data-board-head>
                 <span role="columnheader">Pos.</span>
                 <span role="columnheader">Competidor</span>
                 <span role="columnheader">{metricLabels[ranking.metric]}</span>
                 <span role="columnheader">Para subir</span>
-                <span role="columnheader">Variación diaria</span>
             </div>
 
             {entries.map((entry, index) => (
                 <div
                     class:list={[
                         "row",
-                        "reveal",
                         entry.placeClass,
                         {
                             "top-three": entry.isTopThree,
@@ -64,7 +63,7 @@ const entries = ranking.entries.map((entry) => ({
                     ]}
                     role="row"
                     aria-rowindex={index + 2}
-                    style={`animation-delay:${Math.min(index * 35, 350)}ms`}
+                    data-ranking-row
                 >
                     <span class="position number" role="cell">
                         <b>{String(entry.position).padStart(2, "0")}</b>
@@ -97,28 +96,137 @@ const entries = ranking.entries.map((entry) => ({
                                 : "Empate"
                             : `+${formatNumber(entry.distanceToHigher)}`}
                     </span>
-
-                    <span
-                        class:list={[
-                            "datum",
-                            "delta",
-                            {
-                                positive: entry.dailyDelta > 0,
-                                negative: entry.dailyDelta < 0,
-                            },
-                        ]}
-                        role="cell"
-                    >
-                        <small>Variación diaria</small>
-                        {entry.dailyDelta === 0
-                            ? "Sin cambio"
-                            : `${entry.dailyDelta > 0 ? "+" : ""}${formatNumber(entry.dailyDelta)}`}
-                    </span>
                 </div>
             ))}
         </section>
     )
 }
+
+<script>
+    import gsap from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    const board = document.querySelector<HTMLElement>("[data-ranking-board]");
+
+    if (board) {
+        const head = board.querySelector<HTMLElement>("[data-board-head]");
+        const rows = Array.from(
+            board.querySelectorAll<HTMLElement>("[data-ranking-row]"),
+        );
+        const media = gsap.matchMedia();
+
+        media.add("(prefers-reduced-motion: no-preference)", () => {
+            if (head) {
+                gsap.from(head, {
+                    autoAlpha: 0,
+                    y: 10,
+                    duration: 0.34,
+                    ease: "power2.out",
+                    clearProps: "opacity,visibility,transform",
+                });
+            }
+
+            const viewportLimit = window.innerHeight * 0.94;
+            const passedRows: HTMLElement[] = [];
+            const visibleRows: HTMLElement[] = [];
+            const pendingRows: HTMLElement[] = [];
+
+            rows.forEach((row) => {
+                const bounds = row.getBoundingClientRect();
+                if (bounds.bottom < 0) passedRows.push(row);
+                else if (bounds.top < viewportLimit) visibleRows.push(row);
+                else pendingRows.push(row);
+            });
+
+            const revealRows = (targets: Element[]) => {
+                gsap.to(targets, {
+                    autoAlpha: 1,
+                    y: 0,
+                    duration: 0.38,
+                    stagger: 0.035,
+                    ease: "power2.out",
+                    overwrite: "auto",
+                });
+            };
+
+            gsap.set(passedRows, { autoAlpha: 1, y: 0 });
+            gsap.set([...visibleRows, ...pendingRows], {
+                autoAlpha: 0,
+                y: 14,
+            });
+            revealRows(visibleRows);
+
+            const rowTriggers = pendingRows.length
+                ? ScrollTrigger.batch(pendingRows, {
+                      start: "clamp(top 94%)",
+                      once: true,
+                      interval: 0.06,
+                      batchMax: 8,
+                      onEnter: revealRows,
+                  })
+                : [];
+            const refreshFrame = window.requestAnimationFrame(() => {
+                ScrollTrigger.refresh();
+                ScrollTrigger.update();
+            });
+
+            return () => {
+                window.cancelAnimationFrame(refreshFrame);
+                rowTriggers.forEach((trigger) => trigger.kill());
+                gsap.killTweensOf([head, ...rows]);
+                gsap.set(rows, {
+                    clearProps: "opacity,visibility,transform",
+                });
+            };
+        });
+
+        media.add(
+            "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+            () => {
+                const cleanups = rows.map((row) => {
+                    const enter = () => {
+                        gsap.to(row, {
+                            x: -6,
+                            scale: 1.003,
+                            duration: 0.2,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                    };
+                    const leave = () => {
+                        gsap.to(row, {
+                            x: 0,
+                            scale: 1,
+                            duration: 0.24,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                    };
+                    const focusOut = (event: FocusEvent) => {
+                        if (!row.contains(event.relatedTarget as Node)) leave();
+                    };
+
+                    row.addEventListener("mouseenter", enter);
+                    row.addEventListener("mouseleave", leave);
+                    row.addEventListener("focusin", enter);
+                    row.addEventListener("focusout", focusOut);
+
+                    return () => {
+                        row.removeEventListener("mouseenter", enter);
+                        row.removeEventListener("mouseleave", leave);
+                        row.removeEventListener("focusin", enter);
+                        row.removeEventListener("focusout", focusOut);
+                        gsap.killTweensOf(row);
+                    };
+                });
+
+                return () => cleanups.forEach((cleanup) => cleanup());
+            },
+        );
+    }
+</script>
 
 <style>
     .partial {
@@ -132,17 +240,16 @@ const entries = ranking.entries.map((entry) => ({
 
     .board {
         margin-top: 2rem;
-        overflow: hidden;
+        overflow: visible;
         background: #0e1118;
         box-shadow: none;
     }
     .board-head,
     .row {
         display: grid;
-        grid-template-columns: 64px minmax(200px, 1.7fr) minmax(
-                105px,
-                0.72fr
-            ) minmax(110px, 0.75fr) minmax(125px, 0.85fr);
+        grid-template-columns:
+            64px minmax(200px, 1.7fr) minmax(105px, 0.72fr)
+            minmax(110px, 0.75fr);
         align-items: center;
         gap: 1rem;
     }
@@ -155,18 +262,21 @@ const entries = ranking.entries.map((entry) => ({
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+        border-radius: var(--radius) var(--radius) 0 0;
     }
     .row {
         --medal: var(--cyan);
         min-height: 74px;
         padding: 0.65rem 1rem;
         border-bottom: 1px solid var(--line);
+        transform-origin: center left;
         transition:
             background 150ms ease,
             border-color 150ms ease;
     }
     .row:last-child {
         border-bottom: 0;
+        border-radius: 0 0 var(--radius) var(--radius);
     }
     .row:nth-child(odd) {
         background: #10141c;
@@ -263,15 +373,6 @@ const entries = ranking.entries.map((entry) => ({
     .distance {
         color: #d7b472;
     }
-    .delta {
-        color: var(--faint);
-    }
-    .delta.positive {
-        color: var(--success);
-    }
-    .delta.negative {
-        color: var(--danger);
-    }
 
     .empty {
         margin-top: 2rem;
@@ -307,9 +408,9 @@ const entries = ranking.entries.map((entry) => ({
         }
         .row {
             grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr);
-            gap: 0.85rem 1rem;
+            gap: 0.65rem 1rem;
             min-height: 0;
-            padding: 1rem;
+            padding: 0.85rem 1rem;
             border: 1px solid var(--line);
             border-radius: var(--radius);
             background: #0e1118;
@@ -328,13 +429,13 @@ const entries = ranking.entries.map((entry) => ({
             border-left: 3px solid var(--cyan);
         }
         .position {
-            grid-row: 1 / span 3;
+            grid-row: 1 / span 2;
             align-self: start;
             padding-top: 0.65rem;
         }
         .identity-cell {
             grid-column: 2 / -1;
-            padding-bottom: 0.75rem;
+            padding-bottom: 0.55rem;
             border-bottom: 1px solid var(--line);
         }
         .datum {
@@ -354,13 +455,9 @@ const entries = ranking.entries.map((entry) => ({
         .total b {
             font-size: 1.16rem;
         }
-        .delta {
-            grid-column: 2 / -1;
-            padding-top: 0.1rem;
-        }
         .top-three :global(.avatar) {
-            width: 52px;
-            height: 52px;
+            width: 50px;
+            height: 50px;
         }
     }
 
@@ -371,7 +468,7 @@ const entries = ranking.entries.map((entry) => ({
         .row {
             grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr);
             gap: 0.8rem;
-            padding: 0.85rem;
+            padding: 0.75rem 0.85rem;
         }
         .position b {
             font-size: 1.05rem;

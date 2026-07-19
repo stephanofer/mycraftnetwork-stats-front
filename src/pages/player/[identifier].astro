@@ -7,20 +7,56 @@ import { getPlayerProfile } from "@/modules/players/player.service";
 export const prerender = false;
 const { identifier } = Astro.params;
 const result = await getPlayerProfile(identifier ?? "");
-if (result.status === "ok" && identifier !== result.data.identity.nickname) return Astro.redirect(`/player/${encodeURIComponent(result.data.identity.nickname)}`, 301);
+if (result.status === "ok" && identifier !== result.data.identity.nickname)
+    return Astro.redirect(
+        `/player/${encodeURIComponent(result.data.identity.nickname)}`,
+        301,
+    );
 if (result.status === "not-found") {
-  Astro.response.status = 404;
-  Astro.response.headers.set("Cache-Control", "public, max-age=0, s-maxage=60");
+    Astro.response.status = 404;
+    Astro.response.headers.set(
+        "Cache-Control",
+        "public, max-age=0, s-maxage=60",
+    );
 }
 if (result.status === "unavailable") {
-  Astro.response.status = 503;
-  Astro.response.headers.set("Cache-Control", "no-store");
+    Astro.response.status = 503;
+    Astro.response.headers.set("Cache-Control", "no-store");
 }
-const title = result.status === "ok" ? `${result.data.identity.nickname} · Perfil competitivo | Mycraft Network` : result.status === "not-found" ? "Jugador no encontrado | Mycraft Network" : "Servicio no disponible | Mycraft Network";
+const title =
+    result.status === "ok"
+        ? `${result.data.identity.nickname} · Perfil competitivo | Mycraft Network`
+        : result.status === "not-found"
+          ? "Jugador no encontrado | Mycraft Network"
+          : "Servicio no disponible | Mycraft Network";
 ---
 
-<BaseLayout {title} noindex={result.status !== "ok"} description={result.status === "ok" ? `Perfil competitivo de ${result.data.identity.nickname} en RPG Temporada III.` : undefined}>
-  <main class="page shell">
-    {result.status === "ok" ? <PlayerProfile player={result.data} /> : <StatusState code={result.status === "not-found" ? 404 : 503} title={result.status === "not-found" ? "Jugador no encontrado" : undefined} message={result.status === "not-found" ? `No existe un perfil competitivo para “${identifier ?? ""}”. Podés buscar por nickname o UUID.` : undefined} />}
-  </main>
+<BaseLayout
+    {title}
+    noindex={result.status !== "ok"}
+    description={result.status === "ok"
+        ? `Perfil competitivo de ${result.data.identity.nickname} en RPG Temporada III.`
+        : undefined}
+>
+    <main class="page shell">
+        {
+            result.status === "ok" ? (
+                <PlayerProfile player={result.data} />
+            ) : (
+                <StatusState
+                    code={result.status === "not-found" ? 404 : 503}
+                    title={
+                        result.status === "not-found"
+                            ? "Jugador no encontrado"
+                            : undefined
+                    }
+                    message={
+                        result.status === "not-found"
+                            ? `No existe un perfil competitivo para “${identifier ?? ""}”. Podés buscar por nickname o UUID.`
+                            : undefined
+                    }
+                />
+            )
+        }
+    </main>
 </BaseLayout>

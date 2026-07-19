@@ -5,6 +5,7 @@ export interface ClanRankingEntry {
   id: number;
   name: string;
   prefix: string | null;
+  imageUrl?: string | null;
   kills: number;
   deaths: number;
   level: number;

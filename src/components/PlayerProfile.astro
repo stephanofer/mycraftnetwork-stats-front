@@ -1,115 +1,1256 @@
 ---
 import type { PlayerProfile as Profile } from "@/modules/players/player.types";
-import { formatDate, formatNumber, labelDuelMode, metricLabels, slugify } from "@/presentation";
+import type { RankingMetric } from "@/modules/rankings/ranking.types";
+import {
+    formatDate,
+    formatNumber,
+    labelDuelMode,
+    metricLabels,
+    slugify,
+} from "@/presentation";
 import PlayerIdentity from "./PlayerIdentity.astro";
 
-interface Props { player: Profile; }
+interface Props {
+    player: Profile;
+}
 const { player } = Astro.props;
 const recognitionLabels: Record<string, string> = {
-  "top-10-kills": "Top 10 en kills",
-  "top-10-maxstreak": "Top 10 en mejor racha",
-  "top-10-koth": "Top 10 en KOTH",
+    "top-10-kills": "Top 10 en kills",
+    "top-10-maxstreak": "Top 10 en mejor racha",
+    "top-10-koth": "Top 10 en KOTH",
 };
 const duelStreaks = player.duels
-  ? Object.entries(player.duels.streaks).sort((a, b) => b[1] - a[1])
-  : [];
+    ? Object.entries(player.duels.streaks).sort((a, b) => b[1] - a[1])
+    : [];
 const unavailable = new Set(player.unavailableSections);
+const rankingMetrics: RankingMetric[] = ["kills", "maxstreak", "koth"];
+const rankingsByMetric = new Map(
+    player.rankings?.map((ranking) => [ranking.metric, ranking]),
+);
+const clanRoleLabel =
+    player.clan?.role === "leader"
+        ? "Líder"
+        : player.clan?.role === "elevated"
+          ? "Oficial"
+          : "Miembro";
 ---
 
-<article class="profile">
-  <header class="hero panel reveal">
-    <div>
-      <p class="eyebrow">Perfil competitivo</p>
-      <PlayerIdentity uuid={player.identity.uuid} nickname={player.identity.nickname} rank={player.rank} skin={player.skin} featured eager href={`/player/${encodeURIComponent(player.identity.nickname)}`} />
-    </div>
-    <div class="hero-meta">
-      <span>RPG / TEMPORADA III</span>
-      {player.clan && <a href={`/rpg/clans/${player.clan.id}/${slugify(player.clan.name)}`}><small>Clan actual</small><b>{player.clan.name}</b><em>{player.clan.role === "leader" ? "Líder" : player.clan.role === "elevated" ? "Oficial" : "Miembro"}</em></a>}
-    </div>
-  </header>
+<article class="profile" data-player-profile>
+    <header class="hero panel" data-profile-hero>
+        <div class="hero-primary">
+            <p class="eyebrow">Perfil competitivo</p>
+            <PlayerIdentity
+                uuid={player.identity.uuid}
+                nickname={player.identity.nickname}
+                rank={player.rank}
+                skin={player.skin}
+                featured
+                eager
+                href={null}
+            />
+        </div>
+        <div class="hero-meta">
+            <span>RPG / TEMPORADA III</span>
+            {
+                player.clan && (
+                    <a
+                        href={`/rpg/clans/${player.clan.id}/${slugify(player.clan.name)}`}
+                    >
+                        <>
+                            <small>Clan actual</small>
+                            <b>{player.clan.name}</b>
+                            <em>{clanRoleLabel}</em>
+                        </>
+                    </a>
+                )
+            }
+        </div>
+    </header>
 
-  {player.partialFailures.length > 0 && <aside class="warning" role="status"><strong>Perfil parcialmente disponible.</strong> No se pudieron cargar: {player.partialFailures.join(", ")}.</aside>}
+    {
+        player.partialFailures.length > 0 && (
+            <aside class="warning" role="status" data-profile-section>
+                <strong>Perfil parcialmente disponible.</strong> No se pudieron
+                cargar: {player.partialFailures.join(", ")}.
+            </aside>
+        )
+    }
 
-  {player.recognitions === null ? (
-    <section class="unavailable reveal" aria-label="Reconocimientos"><strong>Reconocimientos: sección no disponible</strong><span>No se pudieron comprobar las posiciones competitivas.</span></section>
-  ) : player.recognitions.length > 0 && <section class="recognitions reveal" aria-label="Reconocimientos">
-    {player.recognitions.map((item) => <span>✦ {recognitionLabels[item] ?? item}</span>)}
-  </section>}
+    {
+        player.recognitions === null ? (
+            <section
+                class="unavailable"
+                aria-label="Reconocimientos"
+                data-profile-section
+            >
+                <>
+                    <strong>Reconocimientos: sección no disponible</strong>
+                    <span>
+                        No se pudieron comprobar las posiciones competitivas.
+                    </span>
+                </>
+            </section>
+        ) : (
+            player.recognitions.length > 0 && (
+                <section
+                    class="recognitions panel"
+                    aria-labelledby="recognitions-title"
+                    data-profile-section
+                >
+                    <div class="recognition-intro">
+                        <div>
+                            <span class="section-kicker">
+                                Rendimiento destacado
+                            </span>
+                            <h2 id="recognitions-title">Logros de temporada</h2>
+                        </div>
+                    </div>
+                    <div class="recognition-list">
+                        {player.recognitions.map((item) => (
+                            <span>
+                                <small>Top competitivo</small>
+                                <strong>
+                                    {recognitionLabels[item] ?? item}
+                                </strong>
+                            </span>
+                        ))}
+                    </div>
+                </section>
+            )
+        )
+    }
 
-  <section class="positions reveal" aria-labelledby="positions-title">
-    <div class="section-head"><div><span class="section-kicker">Clasificación</span><h2 id="positions-title" class="section-title">Posiciones de temporada</h2></div></div>
-    {player.rankings === null || unavailable.has("rankings") ? <p class="unavailable"><strong>Posiciones: sección no disponible</strong><span>La clasificación no pudo consultarse.</span></p> : player.rankings.length ? <div class="position-grid">
-      {player.rankings.map((item) => <a class="position-card panel" href={`/ranking/rpg/${item.metric}`}><span>{metricLabels[item.metric]}</span><strong class="number">#{item.position}</strong><small>{formatNumber(item.value)} total</small><em>{item.distanceToHigher === null ? "Líder o empatado" : `${formatNumber(item.distanceToHigher)} para superar al anterior`}</em></a>)}
-    </div> : <p class="section-empty">Todavía no figura en las categorías de temporada.</p>}
-  </section>
-
-  <div class="content-grid">
-    <section class="stat-section panel reveal" aria-labelledby="combat-title">
-      <div class="section-head"><div><span class="section-kicker">RPG</span><h2 id="combat-title" class="section-title">Combate</h2></div><span class="index number">01</span></div>
-      {player.combat ? <dl class="stat-grid">
-        <div><dt>Kills</dt><dd class="number accent">{formatNumber(player.combat.kills)}</dd></div>
-        <div><dt>Muertes</dt><dd class="number">{formatNumber(player.combat.deaths)}</dd></div>
-        <div><dt>Racha actual</dt><dd class="number">{formatNumber(player.combat.streak)}</dd></div>
-        <div><dt>Mejor racha</dt><dd class="number">{formatNumber(player.combat.maxStreak)}</dd></div>
-        <div class="wide"><dt>Desconexiones en combate</dt><dd class="number danger">{formatNumber(player.combat.combatLogs)}</dd></div>
-      </dl> : <p class="section-empty">Las estadísticas de combate no están disponibles.</p>}
+    <section
+        class="positions"
+        aria-labelledby="positions-title"
+        data-profile-section
+    >
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Clasificación</span><h2
+                    id="positions-title"
+                    class="section-title"
+                >
+                    Posiciones de temporada
+                </h2>
+            </div>
+        </div>
+        {
+            player.rankings === null || unavailable.has("rankings") ? (
+                <p class="unavailable">
+                    <>
+                        <strong>Posiciones: sección no disponible</strong>
+                        <span>La clasificación no pudo consultarse.</span>
+                    </>
+                </p>
+            ) : (
+                <div class="position-grid">
+                    {rankingMetrics.map((metric) => {
+                        const item = rankingsByMetric.get(metric);
+                        return (
+                            <a
+                                class:list={[
+                                    "position-card",
+                                    "panel",
+                                    { empty: !item },
+                                ]}
+                                href={`/ranking/rpg/${metric}`}
+                            >
+                                <span>{metricLabels[metric]}</span>
+                                <strong class="number">
+                                    {item ? `#${item.position}` : "—"}
+                                </strong>
+                                <small>
+                                    {item
+                                        ? `${formatNumber(item.value)} total`
+                                        : metric === "koth"
+                                          ? "0 victorias registradas"
+                                          : "Sin registros"}
+                                </small>
+                                <em>
+                                    {item
+                                        ? item.distanceToHigher === null
+                                            ? "Posición más alta"
+                                            : `${formatNumber(item.distanceToHigher)} para subir una posición`
+                                        : "Sin posición esta temporada"}
+                                </em>
+                            </a>
+                        );
+                    })}
+                </div>
+            )
+        }
     </section>
 
-    <section class="stat-section panel reveal" aria-labelledby="koth-title">
-      <div class="section-head"><div><span class="section-kicker">Dominio territorial</span><h2 id="koth-title" class="section-title">KOTH</h2></div><span class="index number">02</span></div>
-      {player.koth === null || unavailable.has("koth") ? <p class="unavailable"><strong>KOTH: sección no disponible</strong><span>La fuente territorial no respondió.</span></p> : <>
-        <div class="feature-stat"><span>Victorias totales</span><strong class="number">{formatNumber(player.koth.totalWins)}</strong></div>
-        {player.koth.maps.length ? <div class="compact-list">{player.koth.maps.map((map) => <div><span>{map.name}</span><b class="number">{formatNumber(map.wins)}</b></div>)}</div> : <p class="section-empty">Sin victorias por mapa registradas.</p>}
-        <p class="activity">Actividad registrada en KOTH: <time datetime={player.koth.recordedActivityAt?.toISOString()}>{formatDate(player.koth.recordedActivityAt)}</time></p>
-      </>}
-    </section>
-  </div>
+    <div class="content-grid">
+        <section
+            class="stat-section panel"
+            aria-labelledby="combat-title"
+            data-profile-section
+        >
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">RPG</span><h2
+                        id="combat-title"
+                        class="section-title"
+                    >
+                        Combate
+                    </h2>
+                </div><span class="index number">01</span>
+            </div>
+            {
+                player.combat ? (
+                    <dl class="stat-grid">
+                        <div>
+                            <>
+                                <dt>Kills</dt>
+                                <dd class="number accent">
+                                    {formatNumber(player.combat.kills)}
+                                </dd>
+                            </>
+                        </div>
+                        <div>
+                            <>
+                                <dt>Muertes</dt>
+                                <dd class="number">
+                                    {formatNumber(player.combat.deaths)}
+                                </dd>
+                            </>
+                        </div>
+                        <div>
+                            <>
+                                <dt>Racha actual</dt>
+                                <dd class="number">
+                                    {formatNumber(player.combat.streak)}
+                                </dd>
+                            </>
+                        </div>
+                        <div>
+                            <>
+                                <dt>Mejor racha</dt>
+                                <dd class="number">
+                                    {formatNumber(player.combat.maxStreak)}
+                                </dd>
+                            </>
+                        </div>
+                        <div class="wide">
+                            <>
+                                <dt>Desconexiones en combate</dt>
+                                <dd class="number danger">
+                                    {formatNumber(player.combat.combatLogs)}
+                                </dd>
+                            </>
+                        </div>
+                    </dl>
+                ) : (
+                    <p class="section-empty">
+                        Las estadísticas de combate no están disponibles.
+                    </p>
+                )
+            }
+        </section>
 
-  <section class="duels panel reveal" aria-labelledby="duels-title">
-    <div class="section-head"><div><span class="section-kicker">Cara a cara</span><h2 id="duels-title" class="section-title">Duelos</h2></div><span class="index number">03</span></div>
-    {player.duels === null || unavailable.has("duels") ? <p class="unavailable"><strong>Duelos: sección no disponible</strong><span>No se pudieron recuperar sus enfrentamientos.</span></p> : <><div class="duel-summary">
-      <div><span>Partidas</span><strong class="number">{formatNumber(player.duels.matches)}</strong></div><div><span>Victorias</span><strong class="number success">{formatNumber(player.duels.wins)}</strong></div><div><span>Derrotas</span><strong class="number">{formatNumber(player.duels.losses)}</strong></div><div><span>Win rate</span><strong class="number">{player.duels.winRate.toFixed(1)}%</strong></div><div><span>Kills / muertes</span><strong class="number">{formatNumber(player.duels.kills)} / {formatNumber(player.duels.deaths)}</strong></div>
+        <section
+            class="stat-section panel"
+            aria-labelledby="koth-title"
+            data-profile-section
+        >
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Dominio territorial</span><h2
+                        id="koth-title"
+                        class="section-title"
+                    >
+                        KOTH
+                    </h2>
+                </div><span class="index number">02</span>
+            </div>
+            {
+                player.koth === null || unavailable.has("koth") ? (
+                    <p class="unavailable">
+                        <>
+                            <strong>KOTH: sección no disponible</strong>
+                            <span>La fuente territorial no respondió.</span>
+                        </>
+                    </p>
+                ) : (
+                    <>
+                        <div class="feature-stat">
+                            <>
+                                <span>Victorias totales</span>
+                                <strong class="number">
+                                    {formatNumber(player.koth.totalWins)}
+                                </strong>
+                            </>
+                        </div>
+                        {player.koth.maps.length ? (
+                            <div class="compact-list">
+                                {player.koth.maps.map((map) => (
+                                    <div>
+                                        <span>{map.name}</span>
+                                        <b class="number">
+                                            {formatNumber(map.wins)}
+                                        </b>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p class="section-empty">
+                                Sin victorias por mapa registradas.
+                            </p>
+                        )}
+                        <p class="activity">
+                            Actividad registrada en KOTH:{" "}
+                            <time
+                                datetime={player.koth.recordedActivityAt?.toISOString()}
+                            >
+                                {formatDate(player.koth.recordedActivityAt)}
+                            </time>
+                        </p>
+                    </>
+                )
+            }
+        </section>
     </div>
-    {player.duels.modes.length ? <div class="mode-table"><div class="mode-head"><span>Modo</span><span>Partidas</span><span>V / D</span><span>K / M</span><span>Última actividad</span></div>{player.duels.modes.map((mode) => <div class="mode-row"><b>{labelDuelMode(mode.mode)}</b><span class="number">{formatNumber(mode.matches)}</span><span class="number">{mode.wins} / {mode.losses}</span><span class="number">{mode.kills} / {mode.deaths}</span><time datetime={mode.lastPlayedAt?.toISOString()}>{formatDate(mode.lastPlayedAt)}</time></div>)}</div> : <p class="section-empty">Sin duelos registrados en esta temporada.</p>}
-    {duelStreaks.length > 0 && <div class="streaks"><h3>Rachas registradas</h3>{duelStreaks.map(([mode, value]) => <span><small>{labelDuelMode(mode)}</small><b class="number">{formatNumber(value)}</b></span>)}</div>}</>}
-  </section>
 
-  {player.clan ? <section class="clan-band reveal"><div><span class="section-kicker">Contribución actual</span><h2>{player.clan.name}</h2><p>{formatNumber(player.clan.kills)} kills · {formatNumber(player.clan.deaths)} muertes atribuidas al miembro</p></div><strong class="number">{player.clan.contributionPercent.toFixed(1)}<small>% aporte</small></strong><a class="button" href={`/rpg/clans/${player.clan.id}/${slugify(player.clan.name)}`}>Ver clan</a></section> : unavailable.has("clan") ? <section class="unavailable reveal"><strong>Clan: sección no disponible</strong><span>No se pudo comprobar la afiliación actual.</span></section> : null}
+    <section
+        class="duels panel"
+        aria-labelledby="duels-title"
+        data-profile-section
+    >
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Cara a cara</span><h2
+                    id="duels-title"
+                    class="section-title"
+                >
+                    Duelos
+                </h2>
+            </div><span class="index number">03</span>
+        </div>
+        {
+            player.duels === null || unavailable.has("duels") ? (
+                <p class="unavailable">
+                    <>
+                        <strong>Duelos: sección no disponible</strong>
+                        <span>
+                            No se pudieron recuperar sus enfrentamientos.
+                        </span>
+                    </>
+                </p>
+            ) : (
+                <>
+                    <div class="duel-summary">
+                        <>
+                            <div>
+                                <>
+                                    <span>Partidas</span>
+                                    <strong class="number">
+                                        {formatNumber(player.duels.matches)}
+                                    </strong>
+                                </>
+                            </div>
+                            <div>
+                                <>
+                                    <span>Victorias</span>
+                                    <strong class="number success">
+                                        {formatNumber(player.duels.wins)}
+                                    </strong>
+                                </>
+                            </div>
+                            <div>
+                                <>
+                                    <span>Derrotas</span>
+                                    <strong class="number">
+                                        {formatNumber(player.duels.losses)}
+                                    </strong>
+                                </>
+                            </div>
+                            <div>
+                                <>
+                                    <span>Win rate</span>
+                                    <strong class="number">
+                                        {player.duels.winRate.toFixed(1)}%
+                                    </strong>
+                                </>
+                            </div>
+                            <div>
+                                <>
+                                    <span>Kills / muertes</span>
+                                    <strong class="number">
+                                        {formatNumber(player.duels.kills)} /{" "}
+                                        {formatNumber(player.duels.deaths)}
+                                    </strong>
+                                </>
+                            </div>
+                        </>
+                    </div>
+                    {player.duels.modes.length ? (
+                        <div class="mode-table">
+                            <div class="mode-head">
+                                <span>Modo</span>
+                                <span>Partidas</span>
+                                <span>V / D</span>
+                                <span>K / M</span>
+                                <span>Última actividad</span>
+                            </div>
+                            {player.duels.modes.map((mode) => (
+                                <div class="mode-row">
+                                    <b>{labelDuelMode(mode.mode)}</b>
+                                    <span class="number">
+                                        {formatNumber(mode.matches)}
+                                    </span>
+                                    <span class="number">
+                                        {mode.wins} / {mode.losses}
+                                    </span>
+                                    <span class="number">
+                                        {mode.kills} / {mode.deaths}
+                                    </span>
+                                    <time
+                                        datetime={mode.lastPlayedAt?.toISOString()}
+                                    >
+                                        {formatDate(mode.lastPlayedAt)}
+                                    </time>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p class="section-empty">
+                            Sin duelos registrados en esta temporada.
+                        </p>
+                    )}
+                    {duelStreaks.length > 0 && (
+                        <div class="streaks">
+                            <h3>Rachas registradas</h3>
+                            {duelStreaks.map(([mode, value]) => (
+                                <span>
+                                    <small>{labelDuelMode(mode)}</small>
+                                    <b class="number">{formatNumber(value)}</b>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </>
+            )
+        }
+    </section>
+
+    {
+        player.clan ? (
+            <section
+                class="clan-contribution panel"
+                aria-labelledby="clan-title"
+                data-profile-section
+            >
+                <div class="clan-heading">
+                    <div>
+                        <span class="section-kicker">
+                            Clan actual · {clanRoleLabel}
+                        </span>
+                        <h2 id="clan-title">
+                            Contribución a {player.clan.name}
+                        </h2>
+                        <p>
+                            Rendimiento que este jugador aporta a las
+                            estadísticas del clan.
+                        </p>
+                    </div>
+                    <a
+                        class="button"
+                        href={`/rpg/clans/${player.clan.id}/${slugify(player.clan.name)}`}
+                    >
+                        Ver clan
+                    </a>
+                </div>
+                <dl class="clan-stats">
+                    <div>
+                        <dt>Kills aportadas</dt>
+                        <dd class="number">
+                            {formatNumber(player.clan.kills)}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Muertes registradas</dt>
+                        <dd class="number">
+                            {formatNumber(player.clan.deaths)}
+                        </dd>
+                    </div>
+                    <div class="share">
+                        <dt>Aporte a las kills del clan</dt>
+                        <dd class="number">
+                            {player.clan.contributionPercent.toFixed(1)}%
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+        ) : unavailable.has("clan") ? (
+            <section class="unavailable" data-profile-section>
+                <>
+                    <strong>Clan: sección no disponible</strong>
+                    <span>No se pudo comprobar la afiliación actual.</span>
+                </>
+            </section>
+        ) : (
+            <section
+                class="no-clan panel"
+                aria-labelledby="no-clan-title"
+                data-profile-section
+            >
+                <span class="no-clan-mark" aria-hidden="true">
+                    ◇
+                </span>
+                <div>
+                    <span class="section-kicker">Afiliación de clan</span>
+                    <h2 id="no-clan-title">Sin clan actualmente</h2>
+                    <p>
+                        Este jugador no pertenece a ningún clan de RPG en este
+                        momento.
+                    </p>
+                </div>
+            </section>
+        )
+    }
 </article>
 
+<script>
+    import gsap from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    const profile = document.querySelector<HTMLElement>(
+        "[data-player-profile]",
+    );
+
+    if (profile) {
+        const hero = profile.querySelector<HTMLElement>("[data-profile-hero]");
+        const heroEyebrow = hero?.querySelector<HTMLElement>(".eyebrow");
+        const heroAvatar = hero?.querySelector<HTMLElement>(
+            ".featured .avatar",
+        );
+        const heroIdentity = hero?.querySelector<HTMLElement>(
+            ".featured .identity-copy",
+        );
+        const heroMeta = hero?.querySelector<HTMLElement>(".hero-meta");
+        const sections = Array.from(
+            profile.querySelectorAll<HTMLElement>("[data-profile-section]"),
+        );
+        const detailSelector = [
+            ".recognition-list > span",
+            ".position-card",
+            ".stat-grid > div",
+            ".compact-list > div",
+            ".duel-summary > div",
+            ".mode-row",
+            ".streaks > span",
+            ".clan-stats > div",
+        ].join(",");
+        const detailItems = Array.from(
+            profile.querySelectorAll<HTMLElement>(detailSelector),
+        );
+        const media = gsap.matchMedia();
+
+        media.add("(prefers-reduced-motion: no-preference)", () => {
+            if (hero) {
+                const heroEntrance = gsap.timeline({
+                    defaults: { ease: "power2.out" },
+                });
+
+                heroEntrance.from(hero, {
+                    autoAlpha: 0,
+                    y: 14,
+                    duration: 0.42,
+                    clearProps: "opacity,visibility,transform",
+                });
+                if (heroEyebrow) {
+                    heroEntrance.from(
+                        heroEyebrow,
+                        { autoAlpha: 0, x: -8, duration: 0.28 },
+                        0.08,
+                    );
+                }
+                if (heroAvatar) {
+                    heroEntrance.from(
+                        heroAvatar,
+                        {
+                            autoAlpha: 0,
+                            x: -10,
+                            scale: 0.98,
+                            duration: 0.42,
+                        },
+                        0.1,
+                    );
+                }
+                if (heroIdentity) {
+                    heroEntrance.from(
+                        heroIdentity,
+                        { autoAlpha: 0, y: 8, duration: 0.34 },
+                        0.16,
+                    );
+                }
+                if (heroMeta) {
+                    heroEntrance.from(
+                        heroMeta,
+                        { autoAlpha: 0, x: 10, duration: 0.32 },
+                        0.18,
+                    );
+                }
+            }
+
+            const viewportLimit = window.innerHeight * 0.94;
+            const passedSections: HTMLElement[] = [];
+            const visibleSections: HTMLElement[] = [];
+            const pendingSections: HTMLElement[] = [];
+
+            sections.forEach((section) => {
+                const bounds = section.getBoundingClientRect();
+                if (bounds.bottom < 0) passedSections.push(section);
+                else if (bounds.top < viewportLimit)
+                    visibleSections.push(section);
+                else pendingSections.push(section);
+            });
+
+            const revealSections = (targets: Element[]) => {
+                gsap.to(targets, {
+                    autoAlpha: 1,
+                    y: 0,
+                    duration: 0.42,
+                    stagger: 0.055,
+                    ease: "power2.out",
+                    overwrite: "auto",
+                });
+
+                targets.forEach((target, index) => {
+                    const items = target.querySelectorAll<HTMLElement>(
+                        detailSelector,
+                    );
+                    if (items.length === 0) return;
+
+                    gsap.fromTo(
+                        items,
+                        { autoAlpha: 0, y: 7 },
+                        {
+                            autoAlpha: 1,
+                            y: 0,
+                            duration: 0.3,
+                            stagger: 0.028,
+                            delay: 0.08 + index * 0.035,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        },
+                    );
+                });
+            };
+
+            gsap.set(passedSections, { autoAlpha: 1, y: 0 });
+            gsap.set([...visibleSections, ...pendingSections], {
+                autoAlpha: 0,
+                y: 15,
+            });
+            revealSections(visibleSections);
+
+            const sectionTriggers = pendingSections.length
+                ? ScrollTrigger.batch(pendingSections, {
+                      start: "clamp(top 92%)",
+                      once: true,
+                      interval: 0.08,
+                      batchMax: 3,
+                      onEnter: revealSections,
+                  })
+                : [];
+            const refreshFrame = window.requestAnimationFrame(() => {
+                ScrollTrigger.refresh();
+                ScrollTrigger.update();
+            });
+
+            return () => {
+                window.cancelAnimationFrame(refreshFrame);
+                sectionTriggers.forEach((trigger) => trigger.kill());
+                gsap.killTweensOf([
+                    hero,
+                    heroEyebrow,
+                    heroAvatar,
+                    heroIdentity,
+                    heroMeta,
+                    ...sections,
+                    ...detailItems,
+                ]);
+                gsap.set([...sections, ...detailItems], {
+                    clearProps: "opacity,visibility,transform",
+                });
+            };
+        });
+
+        media.add(
+            "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+            () => {
+                const targets = Array.from(
+                    profile.querySelectorAll<HTMLElement>(
+                        ".position-card, .hero-meta a, .clan-heading .button",
+                    ),
+                );
+                const cleanups = targets.map((target) => {
+                    const isCard = target.classList.contains("position-card");
+                    const enter = () => {
+                        gsap.to(target, {
+                            y: isCard ? -4 : -2,
+                            scale: isCard ? 1.008 : 1,
+                            duration: 0.2,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                    };
+                    const leave = () => {
+                        gsap.to(target, {
+                            y: 0,
+                            scale: 1,
+                            duration: 0.24,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                    };
+
+                    target.addEventListener("mouseenter", enter);
+                    target.addEventListener("mouseleave", leave);
+                    target.addEventListener("focus", enter);
+                    target.addEventListener("blur", leave);
+
+                    return () => {
+                        target.removeEventListener("mouseenter", enter);
+                        target.removeEventListener("mouseleave", leave);
+                        target.removeEventListener("focus", enter);
+                        target.removeEventListener("blur", leave);
+                        gsap.killTweensOf(target);
+                    };
+                });
+
+                return () => cleanups.forEach((cleanup) => cleanup());
+            },
+        );
+    }
+</script>
+
 <style>
-  .profile { display: grid; gap: 1.25rem; }
-  .hero { position: relative; display: grid; grid-template-columns: 1fr auto; min-height: 310px; align-items: end; padding: clamp(1.25rem, 4vw, 3rem); overflow: hidden; }
-  .hero::before { content: ""; position: absolute; width: 420px; height: 420px; left: -100px; bottom: -300px; border-radius: 50%; background: var(--accent); filter: blur(100px); opacity: .18; }
-  .hero > * { position: relative; }
-  .hero-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 1rem; color: var(--faint); font-size: .65rem; letter-spacing: .12em; }
-  .hero-meta a { min-width: 170px; padding: .8rem; border: 1px solid var(--line); background: rgb(0 0 0 / 20%); letter-spacing: 0; }
-  .hero-meta small, .hero-meta b, .hero-meta em { display: block; }
-  .hero-meta small { color: var(--faint); text-transform: uppercase; } .hero-meta b { margin-top: .15rem; color: var(--text); font-family: var(--display); font-size: 1.1rem; } .hero-meta em { color: var(--accent-bright); font-size: .7rem; font-style: normal; }
-  .warning { padding: .8rem 1rem; border: 1px solid #6e572d; border-radius: 7px; background: #1d1911; color: #d9c797; font-size: .8rem; }
-  .unavailable { display: flex; flex-direction: column; gap: .2rem; margin: 1rem 0 0; padding: .9rem 1rem; border: 1px solid #6e572d; border-radius: 7px; background: #1d1911; color: #d9c797; font-size: .78rem; font-style: normal; }
-  .unavailable span { color: #a99b79; font-size: .7rem; }
-  .recognitions { display: flex; flex-wrap: wrap; gap: .5rem; } .recognitions span { padding: .45rem .7rem; border: 1px solid #64512e; border-radius: 100px; color: var(--gold); font-size: .72rem; }
-  .positions { margin-top: 1.5rem; }
-  .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.2rem; }
-  .index { color: var(--faint); }
-  .position-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-top: 1rem; }
-  .position-card { display: grid; grid-template-columns: 1fr auto; padding: 1rem; box-shadow: none; transition: transform 180ms ease, border-color 180ms ease; }
-  .position-card:hover { transform: translateY(-3px); border-color: var(--accent); }
-  .position-card > span { color: var(--muted); font-size: .72rem; text-transform: uppercase; } .position-card > strong { grid-row: span 2; color: var(--accent-bright); font-size: 2rem; } .position-card small { color: var(--text); } .position-card em { grid-column: 1 / -1; margin-top: .7rem; color: var(--faint); font-size: .67rem; font-style: normal; }
-  .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-  .stat-section, .duels { padding: clamp(1.1rem, 3vw, 1.8rem); box-shadow: none; }
-  dl { margin: 0; }
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; }
-  .stat-grid div { padding: 1rem 0; border-top: 1px solid var(--line); } .stat-grid div:nth-child(odd) { padding-right: 1rem; border-right: 1px solid var(--line); } .stat-grid div:nth-child(even) { padding-left: 1rem; } .stat-grid .wide { grid-column: 1 / -1; border-right: 0; }
-  dt, .feature-stat span, .duel-summary span { color: var(--muted); font-size: .72rem; } dd { margin: .2rem 0 0; font-size: 1.5rem; } .accent { color: var(--accent-bright); } .danger { color: var(--danger); } .success { color: var(--success); }
-  .feature-stat { display: flex; align-items: end; justify-content: space-between; padding: 1rem 0; border-block: 1px solid var(--line); } .feature-stat strong { color: var(--gold); font-size: 2.6rem; }
-  .compact-list div { display: flex; justify-content: space-between; padding: .65rem 0; border-bottom: 1px solid var(--line); font-size: .8rem; } .compact-list span { color: var(--muted); }
-  .activity, .section-empty { margin: 1rem 0 0; color: var(--faint); font-size: .72rem; }
-  .duel-summary { display: grid; grid-template-columns: repeat(5, 1fr); border-block: 1px solid var(--line); } .duel-summary div { padding: 1rem; border-right: 1px solid var(--line); } .duel-summary div:first-child { padding-left: 0; } .duel-summary div:last-child { border: 0; } .duel-summary strong, .duel-summary span { display: block; } .duel-summary strong { margin-top: .3rem; font-size: 1.2rem; }
-  .mode-table { margin-top: 1rem; } .mode-head, .mode-row { display: grid; grid-template-columns: 1.3fr repeat(3, .7fr) 1fr; gap: 1rem; padding: .65rem; align-items: center; } .mode-head { color: var(--faint); font-size: .62rem; text-transform: uppercase; } .mode-row { border-top: 1px solid var(--line); color: var(--muted); font-size: .75rem; } .mode-row b { color: var(--text); }
-  .streaks { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; margin-top: 1.2rem; } .streaks h3 { width: 100%; margin: 0; font-size: .8rem; } .streaks span { min-width: 110px; padding: .6rem; border: 1px solid var(--line); } .streaks small, .streaks b { display: block; } .streaks small { color: var(--faint); } .streaks b { margin-top: .25rem; }
-  .clan-band { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 2rem; padding: 1.5rem; border: 1px solid var(--line); border-left: 3px solid var(--cyan); background: linear-gradient(90deg, rgb(85 214 190 / 8%), transparent); } .clan-band h2, .clan-band p { margin: 0; } .clan-band h2 { font-family: var(--display); } .clan-band p { color: var(--muted); font-size: .75rem; } .clan-band > strong { color: var(--cyan); font-size: 2rem; } .clan-band > strong small { display: block; font-family: var(--body); font-size: .6rem; text-transform: uppercase; }
-  @media (max-width: 800px) { .content-grid { grid-template-columns: 1fr; } .duel-summary { grid-template-columns: repeat(2, 1fr); } .duel-summary div { border-bottom: 1px solid var(--line); } .mode-head { display: none; } .mode-row { grid-template-columns: 1fr 1fr; } .mode-row time { grid-column: 1 / -1; } }
-  @media (max-width: 600px) { .hero { grid-template-columns: 1fr; } .hero-meta { align-items: stretch; } .position-grid { grid-template-columns: 1fr; } .clan-band { grid-template-columns: 1fr auto; } .clan-band .button { grid-column: 1 / -1; } }
+    .profile {
+        display: grid;
+        gap: 1.25rem;
+    }
+    .hero {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+        min-height: 330px;
+        align-items: center;
+        gap: clamp(1.5rem, 4vw, 4rem);
+        padding: clamp(1.25rem, 4vw, 3rem);
+        overflow: hidden;
+    }
+    .hero::before {
+        content: "";
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        left: -100px;
+        bottom: -300px;
+        border-radius: 50%;
+        background: var(--accent);
+        filter: blur(100px);
+        opacity: 0.18;
+    }
+    .hero > * {
+        position: relative;
+    }
+    .hero-primary {
+        display: grid;
+        min-width: 0;
+        gap: 1rem;
+    }
+    .hero-primary .eyebrow {
+        margin: 0;
+    }
+    .hero-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1rem;
+        color: var(--faint);
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+    }
+    .hero-meta a {
+        min-width: 170px;
+        padding: 0.8rem;
+        border: 1px solid var(--line);
+        background: rgb(0 0 0 / 20%);
+        letter-spacing: 0;
+    }
+    .hero-meta small,
+    .hero-meta b,
+    .hero-meta em {
+        display: block;
+    }
+    .hero-meta small {
+        color: var(--faint);
+        text-transform: uppercase;
+    }
+    .hero-meta b {
+        margin-top: 0.15rem;
+        color: var(--text);
+        font-family: var(--display);
+        font-size: 1.1rem;
+    }
+    .hero-meta em {
+        color: var(--accent-bright);
+        font-size: 0.7rem;
+        font-style: normal;
+    }
+    .warning {
+        padding: 0.8rem 1rem;
+        border: 1px solid #6e572d;
+        border-radius: 7px;
+        background: #1d1911;
+        color: #d9c797;
+        font-size: 0.8rem;
+    }
+    .unavailable {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        margin: 1rem 0 0;
+        padding: 0.9rem 1rem;
+        border: 1px solid #6e572d;
+        border-radius: 7px;
+        background: #1d1911;
+        color: #d9c797;
+        font-size: 0.78rem;
+        font-style: normal;
+    }
+    .unavailable span {
+        color: #a99b79;
+        font-size: 0.7rem;
+    }
+    .recognitions {
+        display: grid;
+        grid-template-columns: minmax(210px, 0.7fr) 1.3fr;
+        align-items: center;
+        gap: clamp(1rem, 3vw, 2rem);
+        padding: clamp(1rem, 2.5vw, 1.5rem);
+        border-color: #64512e;
+        background: linear-gradient(
+            115deg,
+            rgb(213 168 72 / 11%),
+            rgb(213 168 72 / 2%) 55%,
+            transparent
+        );
+        box-shadow: none;
+    }
+    .recognition-intro {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+    .recognition-intro h2 {
+        margin: 0.15rem 0 0;
+        font-family: var(--display);
+        font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    }
+    .recognition-mark {
+        display: grid;
+        width: 2.8rem;
+        height: 2.8rem;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 1px solid #826b3d;
+        border-radius: 50%;
+        color: var(--gold);
+        background: rgb(213 168 72 / 9%);
+        font-size: 1.15rem;
+    }
+    .recognition-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.6rem;
+    }
+    .recognition-list > span {
+        display: flex;
+        min-height: 65px;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0.7rem 0.85rem;
+        border-left: 2px solid var(--gold);
+        background: rgb(0 0 0 / 18%);
+    }
+    .recognition-list small {
+        color: var(--faint);
+        font-size: 0.58rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .recognition-list strong {
+        margin-top: 0.2rem;
+        color: var(--gold);
+        font-size: 0.8rem;
+    }
+    .positions {
+        margin-top: 1.5rem;
+    }
+    .section-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.2rem;
+    }
+    .index {
+        color: var(--faint);
+    }
+    .position-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    .position-card {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        padding: 1rem;
+        box-shadow: none;
+    }
+    .position-card:hover {
+        border-color: var(--accent);
+    }
+    .position-card > span {
+        color: var(--muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+    }
+    .position-card > strong {
+        grid-row: span 2;
+        color: var(--accent-bright);
+        font-size: 2rem;
+    }
+    .position-card small {
+        color: var(--text);
+    }
+    .position-card em {
+        grid-column: 1 / -1;
+        margin-top: 0.7rem;
+        color: var(--faint);
+        font-size: 0.67rem;
+        font-style: normal;
+    }
+    .position-card.empty > strong {
+        color: var(--faint);
+    }
+    .position-card.empty small,
+    .position-card.empty em {
+        color: var(--faint);
+    }
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+    }
+    .stat-section,
+    .duels {
+        padding: clamp(1.1rem, 3vw, 1.8rem);
+        box-shadow: none;
+    }
+    dl {
+        margin: 0;
+    }
+    .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .stat-grid div {
+        padding: 1rem 0;
+        border-top: 1px solid var(--line);
+    }
+    .stat-grid div:nth-child(odd) {
+        padding-right: 1rem;
+        border-right: 1px solid var(--line);
+    }
+    .stat-grid div:nth-child(even) {
+        padding-left: 1rem;
+    }
+    .stat-grid .wide {
+        grid-column: 1 / -1;
+        border-right: 0;
+    }
+    dt,
+    .feature-stat span,
+    .duel-summary span {
+        color: var(--muted);
+        font-size: 0.72rem;
+    }
+    dd {
+        margin: 0.2rem 0 0;
+        font-size: 1.5rem;
+    }
+    .accent {
+        color: var(--accent-bright);
+    }
+    .danger {
+        color: var(--danger);
+    }
+    .success {
+        color: var(--success);
+    }
+    .feature-stat {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        padding: 1rem 0;
+        border-block: 1px solid var(--line);
+    }
+    .feature-stat strong {
+        color: var(--gold);
+        font-size: 2.6rem;
+    }
+    .compact-list div {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.65rem 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.8rem;
+    }
+    .compact-list span {
+        color: var(--muted);
+    }
+    .activity,
+    .section-empty {
+        margin: 1rem 0 0;
+        color: var(--faint);
+        font-size: 0.72rem;
+    }
+    .duel-summary {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        border-block: 1px solid var(--line);
+    }
+    .duel-summary div {
+        padding: 1rem;
+        border-right: 1px solid var(--line);
+    }
+    .duel-summary div:first-child {
+        padding-left: 0;
+    }
+    .duel-summary div:last-child {
+        border: 0;
+    }
+    .duel-summary strong,
+    .duel-summary span {
+        display: block;
+    }
+    .duel-summary strong {
+        margin-top: 0.3rem;
+        font-size: 1.2rem;
+    }
+    .mode-table {
+        margin-top: 1rem;
+    }
+    .mode-head,
+    .mode-row {
+        display: grid;
+        grid-template-columns: 1.3fr repeat(3, 0.7fr) 1fr;
+        gap: 1rem;
+        padding: 0.65rem;
+        align-items: center;
+    }
+    .mode-head {
+        color: var(--faint);
+        font-size: 0.62rem;
+        text-transform: uppercase;
+    }
+    .mode-row {
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.75rem;
+    }
+    .mode-row b {
+        color: var(--text);
+    }
+    .streaks {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 0.6rem;
+        margin-top: 1.2rem;
+    }
+    .streaks h3 {
+        width: 100%;
+        margin: 0;
+        font-size: 0.8rem;
+    }
+    .streaks span {
+        min-width: 110px;
+        padding: 0.6rem;
+        border: 1px solid var(--line);
+    }
+    .streaks small,
+    .streaks b {
+        display: block;
+    }
+    .streaks small {
+        color: var(--faint);
+    }
+    .streaks b {
+        margin-top: 0.25rem;
+    }
+    .clan-contribution {
+        padding: clamp(1.1rem, 3vw, 1.8rem);
+        border-top: 2px solid var(--cyan);
+        background: linear-gradient(
+            150deg,
+            rgb(85 214 190 / 9%),
+            transparent 45%
+        );
+        box-shadow: none;
+    }
+    .clan-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .clan-heading h2,
+    .clan-heading p {
+        margin: 0;
+    }
+    .clan-heading h2,
+    .no-clan h2 {
+        margin-top: 0.2rem;
+        font-family: var(--display);
+        font-size: clamp(1.2rem, 3vw, 1.7rem);
+    }
+    .clan-heading p,
+    .no-clan p {
+        margin-top: 0.35rem;
+        color: var(--muted);
+        font-size: 0.75rem;
+    }
+    .clan-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-top: 1.4rem;
+        border-block: 1px solid var(--line);
+    }
+    .clan-stats > div {
+        padding: 1rem;
+        border-right: 1px solid var(--line);
+    }
+    .clan-stats > div:first-child {
+        padding-left: 0;
+    }
+    .clan-stats > div:last-child {
+        border-right: 0;
+    }
+    .clan-stats dt {
+        color: var(--muted);
+    }
+    .clan-stats dd {
+        margin-top: 0.35rem;
+        font-size: clamp(1.35rem, 3vw, 2rem);
+    }
+    .clan-stats .share dd {
+        color: var(--cyan);
+    }
+    .no-clan {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: clamp(1.1rem, 3vw, 1.6rem);
+        border-style: dashed;
+        box-shadow: none;
+    }
+    .no-clan h2,
+    .no-clan p {
+        margin-bottom: 0;
+    }
+    .no-clan-mark {
+        display: grid;
+        width: 3rem;
+        height: 3rem;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 1px solid var(--line-bright);
+        border-radius: 50%;
+        color: var(--faint);
+        font-size: 1.1rem;
+    }
+    .clan-heading .button {
+        flex: 0 0 auto;
+        transition: none;
+    }
+    .clan-heading .button:hover {
+        transform: none;
+    }
+    .clan-heading .section-kicker {
+        display: block;
+    }
+    @media (max-width: 800px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+        .duel-summary {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .duel-summary div {
+            border-bottom: 1px solid var(--line);
+        }
+        .duel-summary div:nth-child(odd) {
+            padding-left: 0;
+        }
+        .mode-head {
+            display: none;
+        }
+        .mode-row {
+            grid-template-columns: 1fr 1fr;
+        }
+        .mode-row time {
+            grid-column: 1 / -1;
+        }
+    }
+    @media (max-width: 600px) {
+        .hero {
+            grid-template-columns: 1fr;
+            min-height: 0;
+            align-items: start;
+            gap: 1.25rem;
+        }
+        .hero-meta {
+            align-items: stretch;
+        }
+        .hero-meta > span {
+            display: none;
+        }
+        .recognitions {
+            grid-template-columns: 1fr;
+        }
+        .position-grid {
+            grid-template-columns: 1fr;
+        }
+        .clan-heading {
+            align-items: stretch;
+            flex-direction: column;
+        }
+        .clan-heading .button {
+            text-align: center;
+        }
+        .clan-stats {
+            grid-template-columns: 1fr 1fr;
+        }
+        .clan-stats > div:nth-child(2) {
+            border-right: 0;
+        }
+        .clan-stats > div:nth-child(3) {
+            grid-column: 1 / -1;
+            padding-left: 0;
+            border-top: 1px solid var(--line);
+        }
+        .no-clan {
+            align-items: flex-start;
+        }
+    }
 </style>

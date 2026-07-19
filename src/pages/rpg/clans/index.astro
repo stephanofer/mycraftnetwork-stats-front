@@ -7,42 +7,647 @@ import { formatNumber, slugify } from "@/presentation";
 export const prerender = false;
 const result = await getClanRanking(50);
 if (result.status === "unavailable") {
-  Astro.response.status = 503;
-  Astro.response.headers.set("Cache-Control", "no-store");
+    Astro.response.status = 503;
+    Astro.response.headers.set("Cache-Control", "no-store");
 }
+
+const placeLabels: Record<number, string> = {
+    1: "Primero",
+    2: "Segundo",
+    3: "Tercero",
+};
 ---
 
-<BaseLayout title="Clasificación de clanes · RPG Temporada III | Mycraft Network" description="Leaderboard de clanes por kills en RPG Temporada III." noindex={result.status !== "ok"}>
-  <main class="page shell">
-    <header class="clan-header reveal"><div><p class="eyebrow">RPG · Territorios</p><h1 class="page-title">Clanes en contienda</h1><p class="lede">Clasificación transparente por kills acumuladas. El nivel informa progreso, pero no altera la posición.</p></div><span class="crest number">C<br/>III</span></header>
-    {result.status === "ok" ? (
-      result.data.length > 0 ? <section class="clan-board panel reveal" role="table" aria-label="Ranking de clanes" aria-colcount="6">
-        <div class="head" role="row"><span role="columnheader">Pos.</span><span role="columnheader">Clan</span><span role="columnheader">Kills</span><span role="columnheader">Distancia superior</span><span role="columnheader">Nivel</span><span role="columnheader">Ocupación</span></div>
-        {result.data.map((clan, index) => <a class:list={["clan-row", { podium: clan.position <= 3 }]} role="row" aria-rowindex={index + 2} href={`/rpg/clans/${clan.id}/${slugify(clan.name)}`}>
-          <strong class="position number" role="cell">#{clan.position}</strong>
-          <span class="identity" role="cell"><i>{clan.prefix || clan.name.slice(0, 2).toUpperCase()}</i><span><b>{clan.name}</b><small>{clan.prefix ? `Prefijo ${clan.prefix}` : "Sin prefijo"}</small></span></span>
-          <span class="datum" role="cell"><small>Kills</small><b class="number kills">{formatNumber(clan.kills)}</b></span>
-          <span class="datum" role="cell"><small>Distancia superior</small>{clan.distanceToHigher === null ? "Líder o empate" : `-${formatNumber(clan.distanceToHigher)}`}</span>
-          <span class="datum" role="cell"><small>Nivel</small><b class="number">{formatNumber(clan.level)}</b></span>
-          <span class="datum" role="cell"><small>Ocupación</small>{clan.members} / {clan.slots}</span>
-        </a>)}
-      </section> : <section class="empty panel"><h2>No hay clanes clasificados</h2><p>La temporada todavía no registra actividad válida de clanes.</p></section>
-    ) : <StatusState code={503} />}
-  </main>
+<BaseLayout
+    title="Clasificación de clanes · RPG Temporada III | Mycraft Network"
+    description="Leaderboard de clanes por kills en RPG Temporada III."
+    noindex={result.status !== "ok"}
+>
+    <main class="page shell" data-clan-ranking-page>
+        <header class="clan-header" data-clan-header>
+            <div>
+                <p class="eyebrow">RPG · Temporada III</p>
+                <h1 class="page-title">Clanes en contienda</h1>
+                <p class="lede">
+                    Clasificación transparente por kills acumuladas. El nivel
+                    informa progreso, pero no altera la posición.
+                </p>
+            </div>
+            <div class="season">
+                <span>Temporada</span><strong class="number">03</strong>
+            </div>
+        </header>
+
+        {
+            result.status === "ok" ? (
+                result.data.length > 0 ? (
+                    <section
+                        class="clan-board panel"
+                        data-clan-board
+                        role="table"
+                        aria-label="Ranking de clanes"
+                        aria-colcount="4"
+                    >
+                        <div class="head" role="row" data-clan-board-head>
+                            <span role="columnheader">Pos.</span>
+                            <span role="columnheader">Clan</span>
+                            <span role="columnheader">Kills</span>
+                            <span role="columnheader">Nivel</span>
+                        </div>
+
+                        {result.data.map((clan, index) => (
+                            <a
+                                class:list={[
+                                    "clan-row",
+                                    clan.position <= 3
+                                        ? `place-${clan.position}`
+                                        : undefined,
+                                    {
+                                        "top-three": clan.position <= 3,
+                                        "top-ten": clan.position <= 10,
+                                    },
+                                ]}
+                                role="row"
+                                aria-rowindex={index + 2}
+                                href={`/rpg/clans/${clan.id}/${slugify(clan.name)}`}
+                                data-clan-row
+                            >
+                                <span class="position number" role="cell">
+                                    <b>
+                                        {String(clan.position).padStart(2, "0")}
+                                    </b>
+                                    {clan.position <= 3 && (
+                                        <small>
+                                            {placeLabels[clan.position]}
+                                        </small>
+                                    )}
+                                </span>
+
+                                <span class="identity" role="cell">
+                                    <span class="clan-mark" aria-hidden="true">
+                                        <span>
+                                            {clan.prefix ||
+                                                clan.name
+                                                    .slice(0, 2)
+                                                    .toUpperCase()}
+                                        </span>
+                                        {clan.imageUrl && (
+                                            <img
+                                                src={clan.imageUrl}
+                                                alt=""
+                                                width="54"
+                                                height="54"
+                                                loading="lazy"
+                                                decoding="async"
+                                            />
+                                        )}
+                                    </span>
+                                    <b>{clan.name}</b>
+                                </span>
+
+                                <span class="datum kills-cell" role="cell">
+                                    <small>Kills</small>
+                                    <b class="number">
+                                        {formatNumber(clan.kills)}
+                                    </b>
+                                </span>
+
+                                <span class="datum level-cell" role="cell">
+                                    <small>Nivel</small>
+                                    <b class="number">
+                                        {formatNumber(clan.level)}
+                                    </b>
+                                </span>
+                            </a>
+                        ))}
+                    </section>
+                ) : (
+                    <section class="empty panel" data-clan-empty>
+                        <>
+                            <h2>No hay clanes clasificados</h2>
+                            <p>
+                                La temporada todavía no registra actividad
+                                válida de clanes.
+                            </p>
+                        </>
+                    </section>
+                )
+            ) : (
+                <StatusState code={503} />
+            )
+        }
+    </main>
 </BaseLayout>
 
+<script>
+    import gsap from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    const page = document.querySelector<HTMLElement>(
+        "[data-clan-ranking-page]",
+    );
+
+    if (page) {
+        const headerItems = page.querySelectorAll<HTMLElement>(
+            "[data-clan-header] .eyebrow, [data-clan-header] .page-title, [data-clan-header] .lede, [data-clan-header] .season",
+        );
+        const board = page.querySelector<HTMLElement>("[data-clan-board]");
+        const boardHead = board?.querySelector<HTMLElement>(
+            "[data-clan-board-head]",
+        );
+        const rows = Array.from(
+            board?.querySelectorAll<HTMLElement>("[data-clan-row]") ?? [],
+        );
+        const empty = page.querySelector<HTMLElement>("[data-clan-empty]");
+        const media = gsap.matchMedia();
+
+        media.add("(prefers-reduced-motion: no-preference)", () => {
+            const entrance = gsap.timeline({
+                defaults: { duration: 0.38, ease: "power2.out" },
+            });
+
+            entrance.from(headerItems, {
+                autoAlpha: 0,
+                y: 12,
+                stagger: 0.045,
+                clearProps: "opacity,visibility,transform",
+            });
+
+            if (empty) {
+                entrance.from(
+                    empty,
+                    {
+                        autoAlpha: 0,
+                        y: 12,
+                        clearProps: "opacity,visibility,transform",
+                    },
+                    "-=0.18",
+                );
+            }
+
+            if (!board || rows.length === 0) return;
+
+            if (boardHead) {
+                entrance.from(
+                    boardHead,
+                    {
+                        autoAlpha: 0,
+                        y: 10,
+                        duration: 0.34,
+                        clearProps: "opacity,visibility,transform",
+                    },
+                    "-=0.18",
+                );
+            }
+
+            const viewportLimit = window.innerHeight * 0.94;
+            const passedRows: HTMLElement[] = [];
+            const visibleRows: HTMLElement[] = [];
+            const pendingRows: HTMLElement[] = [];
+
+            rows.forEach((row) => {
+                const bounds = row.getBoundingClientRect();
+                if (bounds.bottom < 0) passedRows.push(row);
+                else if (bounds.top < viewportLimit) visibleRows.push(row);
+                else pendingRows.push(row);
+            });
+
+            const revealRows = (targets: Element[]) => {
+                gsap.to(targets, {
+                    autoAlpha: 1,
+                    y: 0,
+                    duration: 0.38,
+                    stagger: 0.035,
+                    ease: "power2.out",
+                    overwrite: "auto",
+                });
+            };
+
+            gsap.set(passedRows, { autoAlpha: 1, y: 0 });
+            gsap.set([...visibleRows, ...pendingRows], {
+                autoAlpha: 0,
+                y: 14,
+            });
+            revealRows(visibleRows);
+
+            const rowTriggers = pendingRows.length
+                ? ScrollTrigger.batch(pendingRows, {
+                      start: "clamp(top 94%)",
+                      once: true,
+                      interval: 0.06,
+                      batchMax: 8,
+                      onEnter: revealRows,
+                  })
+                : [];
+            const refreshFrame = window.requestAnimationFrame(() => {
+                ScrollTrigger.refresh();
+                ScrollTrigger.update();
+            });
+
+            return () => {
+                window.cancelAnimationFrame(refreshFrame);
+                rowTriggers.forEach((trigger) => trigger.kill());
+                gsap.killTweensOf([boardHead, ...rows]);
+                gsap.set(rows, {
+                    clearProps: "opacity,visibility,transform",
+                });
+            };
+        });
+
+        media.add(
+            "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+            () => {
+                const cleanups = rows.map((row) => {
+                    const enter = () => {
+                        gsap.to(row, {
+                            x: -6,
+                            scale: 1.003,
+                            duration: 0.2,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                    };
+                    const leave = () => {
+                        gsap.to(row, {
+                            x: 0,
+                            scale: 1,
+                            duration: 0.24,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                    };
+
+                    row.addEventListener("mouseenter", enter);
+                    row.addEventListener("mouseleave", leave);
+                    row.addEventListener("focus", enter);
+                    row.addEventListener("blur", leave);
+
+                    return () => {
+                        row.removeEventListener("mouseenter", enter);
+                        row.removeEventListener("mouseleave", leave);
+                        row.removeEventListener("focus", enter);
+                        row.removeEventListener("blur", leave);
+                        gsap.killTweensOf(row);
+                    };
+                });
+
+                return () => cleanups.forEach((cleanup) => cleanup());
+            },
+        );
+    }
+</script>
+
 <style>
-  .clan-header { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 2rem; margin-bottom: 2.5rem; }
-  .crest { display: grid; width: 92px; height: 110px; place-items: center; border: 1px solid var(--line-bright); background: linear-gradient(145deg, rgb(85 214 190 / 15%), transparent); color: var(--cyan); font-size: 1.15rem; line-height: 1; clip-path: polygon(0 0,100% 0,100% 78%,50% 100%,0 78%); }
-  .clan-board { overflow: hidden; box-shadow: none; }
-  .head, .clan-row { display: grid; grid-template-columns: 65px minmax(180px, 1.5fr) repeat(4, minmax(90px, .8fr)); gap: 1rem; align-items: center; }
-  .head { padding: .7rem 1rem; color: var(--faint); font-size: .62rem; font-weight: 800; text-transform: uppercase; }
-  .clan-row { min-height: 76px; padding: .65rem 1rem; border-top: 1px solid var(--line); transition: background 180ms ease, padding-left 180ms ease; }
-  .clan-row:hover { padding-left: 1.25rem; background: rgb(85 214 190 / 4%); }
-  .clan-row.podium { background: linear-gradient(90deg, rgb(232 189 99 / 7%), transparent); }
-  .position { color: var(--muted); } .podium .position { color: var(--gold); }
-  .identity { display: flex; min-width: 0; align-items: center; gap: .75rem; } .identity i { display: grid; width: 43px; height: 43px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line-bright); border-radius: 50%; color: var(--cyan); font-family: var(--display); font-size: .7rem; font-style: normal; } .identity b, .identity small { display: block; } .identity b { font-family: var(--display); } .identity small { color: var(--faint); font-size: .65rem; }
-  .datum { color: var(--muted); font-size: .76rem; } .datum small { display: none; } .kills { color: var(--text); }
-  .empty { padding: 4rem 2rem; text-align: center; } .empty h2 { font-family: var(--display); } .empty p { color: var(--muted); }
-  @media (max-width: 800px) { .crest { display: none; } .head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .clan-board { display: grid; gap: .7rem; overflow: visible; border: 0; background: transparent; } .clan-row { grid-template-columns: 42px 1fr 1fr; gap: .8rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); } .identity { grid-column: 2 / -1; } .position { grid-row: span 3; align-self: start; } .datum { display: flex; flex-direction: column; } .datum small { display: block; color: var(--faint); font-size: .55rem; text-transform: uppercase; } }
+    .clan-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 2rem;
+        margin-bottom: 2.5rem;
+    }
+    .clan-header .page-title {
+        font-size: clamp(2rem, 4.5vw, 3.6rem);
+    }
+    .clan-header .lede {
+        font-size: clamp(0.86rem, 1.5vw, 0.95rem);
+    }
+    .season {
+        display: grid;
+        grid-template-columns: auto auto;
+        align-items: end;
+        gap: 0 0.7rem;
+        padding-left: 1.2rem;
+        border-left: 1px solid var(--line-bright);
+    }
+    .season span {
+        grid-column: 1 / -1;
+        color: var(--muted);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+    }
+    .season strong {
+        font-size: 3.8rem;
+        line-height: 0.85;
+    }
+
+    .clan-board {
+        overflow: visible;
+        background: #0e1118;
+        box-shadow: none;
+    }
+    .head,
+    .clan-row {
+        display: grid;
+        grid-template-columns: 64px minmax(220px, 1.8fr) minmax(
+                110px,
+                0.55fr
+            ) minmax(90px, 0.45fr);
+        align-items: center;
+        gap: 1rem;
+    }
+    .head {
+        padding: 0.78rem 1rem;
+        border-bottom: 1px solid var(--line);
+        background: #090c11;
+        color: var(--faint);
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .clan-row {
+        --medal: var(--cyan);
+        min-height: 74px;
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid var(--line);
+        transform-origin: center left;
+        transition: background 150ms ease;
+    }
+    .clan-row:last-child {
+        border-bottom: 0;
+        border-radius: 0 0 var(--radius) var(--radius);
+    }
+    .clan-row:nth-child(odd) {
+        background: #10141c;
+    }
+    .clan-row:hover {
+        background: #151a24;
+    }
+    .clan-row.top-three {
+        min-height: 94px;
+        border-left: 4px solid var(--medal);
+        background: linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--medal) 10%, #151923),
+            #0e1118 58%
+        );
+    }
+    .clan-row.top-three:hover {
+        background: linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--medal) 14%, #171c26),
+            #121620 65%
+        );
+    }
+    .place-1 {
+        --medal: var(--gold);
+    }
+    .place-2 {
+        --medal: var(--silver);
+    }
+    .place-3 {
+        --medal: var(--bronze);
+    }
+    .clan-row.top-ten:not(.top-three) {
+        border-left: 2px solid rgb(85 214 190 / 55%);
+    }
+
+    .position {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
+        color: var(--muted);
+    }
+    .position b {
+        font-size: 1.15rem;
+        font-weight: 650;
+    }
+    .position small {
+        color: var(--medal);
+        font-family: var(--body);
+        font-size: 0.52rem;
+        font-weight: 850;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+    }
+    .top-three .position b {
+        color: var(--medal);
+        font-size: 1.45rem;
+    }
+    .top-ten:not(.top-three) .position b {
+        color: var(--cyan);
+    }
+
+    .identity {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 0.85rem;
+    }
+    .identity > b {
+        overflow: hidden;
+        color: var(--text);
+        font-family: var(--display);
+        font-size: 1.08rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .clan-mark {
+        position: relative;
+        display: grid;
+        width: 48px;
+        height: 48px;
+        flex: 0 0 auto;
+        overflow: hidden;
+        place-items: center;
+        border: 1px solid var(--line-bright);
+        border-radius: 10px;
+        background: linear-gradient(145deg, #1b2430, #0c1118);
+        color: var(--cyan);
+        font-family: var(--display);
+        font-size: 0.72rem;
+    }
+    .clan-mark img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .top-three .clan-mark {
+        width: 58px;
+        height: 58px;
+        border-color: color-mix(in srgb, var(--medal) 50%, var(--line-bright));
+        color: var(--medal);
+    }
+    .top-three .identity > b {
+        font-size: 1.22rem;
+    }
+
+    .datum {
+        display: flex;
+        flex-direction: column;
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 600;
+    }
+    .datum small {
+        display: none;
+    }
+    .datum b {
+        font-weight: 650;
+    }
+    .kills-cell b {
+        color: var(--text);
+        font-size: 1.12rem;
+    }
+    .top-three .kills-cell b {
+        color: var(--medal);
+        font-size: 1.45rem;
+    }
+    .level-cell b {
+        color: var(--cyan);
+    }
+
+    .empty {
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+    .empty h2 {
+        font-family: var(--display);
+    }
+    .empty p {
+        color: var(--muted);
+    }
+
+    @media (max-width: 800px) {
+        .head {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+        }
+        .clan-board {
+            display: grid;
+            gap: 0.7rem;
+            overflow: visible;
+            border: 0;
+            background: none;
+        }
+        .clan-row {
+            grid-template-columns: 42px minmax(0, 1fr) auto;
+            gap: 0.65rem 1rem;
+            min-height: 0;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: #0e1118;
+        }
+        .clan-row.top-three {
+            min-height: 0;
+            border: 1px solid color-mix(in srgb, var(--medal) 45%, var(--line));
+            border-left: 4px solid var(--medal);
+            background: linear-gradient(
+                110deg,
+                color-mix(in srgb, var(--medal) 11%, #151923),
+                #0e1118 70%
+            );
+        }
+        .clan-row.top-ten:not(.top-three) {
+            border-left: 3px solid var(--cyan);
+        }
+        .position {
+            grid-row: 1 / span 2;
+            align-self: start;
+            padding-top: 0.55rem;
+        }
+        .identity {
+            grid-column: 2 / -1;
+            padding-bottom: 0.55rem;
+            border-bottom: 1px solid var(--line);
+        }
+        .datum {
+            gap: 0.25rem;
+            font-size: 0.92rem;
+        }
+        .datum small {
+            display: block;
+            color: var(--faint);
+            font-size: 0.6rem;
+            font-weight: 750;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .kills-cell {
+            grid-column: 2;
+        }
+        .level-cell {
+            grid-column: 3;
+            min-width: 64px;
+        }
+        .top-three .clan-mark {
+            width: 50px;
+            height: 50px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .clan-header {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            gap: 1.25rem;
+            text-align: center;
+        }
+        .clan-header .page-title {
+            font-size: clamp(2rem, 10vw, 2.7rem);
+        }
+        .clan-header .lede {
+            display: none;
+        }
+        .season {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            justify-self: center;
+            gap: 0.3rem;
+            width: fit-content;
+            padding: 1rem 1.25rem 0;
+            border-top: 1px solid var(--line);
+            border-left: 0;
+            text-align: center;
+        }
+        .season span,
+        .season strong {
+            grid-column: 1;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .clan-row {
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            padding: 0.75rem 0.85rem;
+        }
+        .position b {
+            font-size: 1.05rem;
+        }
+        .top-three .position b {
+            font-size: 1.2rem;
+        }
+        .position small {
+            font-size: 0.46rem;
+        }
+        .clan-mark {
+            width: 44px;
+            height: 44px;
+        }
+        .top-three .clan-mark {
+            width: 48px;
+            height: 48px;
+        }
+        .identity > b {
+            font-size: 1rem;
+        }
+        .top-three .identity > b {
+            font-size: 1.08rem;
+        }
+        .top-three .kills-cell b {
+            font-size: 1.25rem;
+        }
+    }
 </style>

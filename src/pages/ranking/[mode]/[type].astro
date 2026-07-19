@@ -25,8 +25,8 @@ const title = `${metricLabels[type]} · RPG Temporada III | Mycraft Network`;
     description={`Clasificación de ${metricLabels[type]} de RPG Temporada III.`}
     noindex={result.status !== "ok"}
 >
-    <main class="page shell">
-        <header class="ranking-header reveal">
+    <main class="page shell" data-ranking-page>
+        <header class="ranking-header" data-ranking-header>
             <div>
                 <p class="eyebrow">RPG · Temporada III</p><h1
                     class="page-title"
@@ -41,7 +41,7 @@ const title = `${metricLabels[type]} · RPG Temporada III | Mycraft Network`;
                 <span>Temporada</span><strong class="number">03</strong>
             </div>
         </header>
-        <nav class="tabs" aria-label="Categorías de ranking">
+        <nav class="tabs" aria-label="Categorías de ranking" data-ranking-tabs>
             {
                 (["kills", "maxstreak", "koth"] as const).map((metric) => (
                     <a
@@ -63,6 +63,54 @@ const title = `${metricLabels[type]} · RPG Temporada III | Mycraft Network`;
         }
     </main>
 </BaseLayout>
+
+<script>
+    import gsap from "gsap";
+
+    const rankingPage = document.querySelector<HTMLElement>(
+        "[data-ranking-page]",
+    );
+
+    if (rankingPage) {
+        const header = rankingPage.querySelector<HTMLElement>(
+            "[data-ranking-header]",
+        );
+        const tabs = rankingPage.querySelector<HTMLElement>(
+            "[data-ranking-tabs]",
+        );
+        const headerItems = header?.querySelectorAll<HTMLElement>(
+            ".eyebrow, .page-title, .lede, .season",
+        );
+        const media = gsap.matchMedia();
+
+        media.add("(prefers-reduced-motion: no-preference)", () => {
+            const entrance = gsap.timeline({
+                defaults: { duration: 0.38, ease: "power2.out" },
+            });
+
+            if (headerItems) {
+                entrance.from(headerItems, {
+                    autoAlpha: 0,
+                    y: 12,
+                    stagger: 0.045,
+                    clearProps: "opacity,visibility,transform",
+                });
+            }
+            if (tabs) {
+                entrance.from(
+                    tabs,
+                    {
+                        autoAlpha: 0,
+                        y: 8,
+                        duration: 0.32,
+                        clearProps: "opacity,visibility,transform",
+                    },
+                    "-=0.2",
+                );
+            }
+        });
+    }
+</script>
 
 <style>
     .ranking-header {
