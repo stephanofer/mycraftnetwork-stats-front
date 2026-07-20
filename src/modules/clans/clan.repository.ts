@@ -7,15 +7,13 @@ import {
   deluxeCombatPlayers,
   luckPermsPlayers,
 } from "@/db/schema/rpg";
-import { observeQuery } from "@/modules/shared/observability";
 import type { ClanRankingEntry, RawClanProfile } from "./clan.types";
 
 const MAX_CLAN_RANKING_ENTRIES = 40;
 
 export async function findClanRanking(requestedLimit = MAX_CLAN_RANKING_ENTRIES): Promise<ClanRankingEntry[]> {
   const limit = Math.min(Math.max(Math.trunc(requestedLimit), 1), MAX_CLAN_RANKING_ENTRIES);
-  return observeQuery("clans.ranking", "rpg", async () => {
-    const result = await rpgDb.execute(sql`
+  const result = await rpgDb.execute(sql`
       WITH ranked AS (
         SELECT id, name, prefix, kills, deaths, level,
                total_members AS members, slots,
@@ -29,13 +27,11 @@ export async function findClanRanking(requestedLimit = MAX_CLAN_RANKING_ENTRIES)
       ORDER BY r.kills DESC, r.name ASC
       LIMIT ${limit}
     `);
-    return (result[0] as unknown as ClanRankingEntry[]).map(normalizeRanking);
-  });
+  return (result[0] as unknown as ClanRankingEntry[]).map(normalizeRanking);
 }
 
 export async function findClanProfile(id: number): Promise<RawClanProfile | null> {
-  return observeQuery("clans.profile", "rpg", async () => {
-    const clanRows = await rpgDb
+  const clanRows = await rpgDb
       .select({
         id: clans.id,
         name: clans.name,
@@ -85,7 +81,7 @@ export async function findClanProfile(id: number): Promise<RawClanProfile | null
           .from(clans)
           .where(sql`${clans.id} IN (${sql.join(allyIds.map((allyId) => sql`${allyId}`), sql`, `)})`);
 
-    return {
+  return {
       clan: {
         id: clan.id,
         name: clan.name,
@@ -111,8 +107,7 @@ export async function findClanProfile(id: number): Promise<RawClanProfile | null
         })),
       allies: allies
         .filter((ally): ally is typeof ally & { name: string } => ally.name !== null),
-    };
-  });
+  };
 }
 
 export async function findClanPosition(id: number): Promise<{
@@ -121,8 +116,7 @@ export async function findClanPosition(id: number): Promise<{
   tiedAtPosition: boolean;
   higherClan: { id: number; name: string; kills: number } | null;
 }> {
-  return observeQuery("clans.position", "rpg", async () => {
-    const result = await rpgDb.execute(sql`
+  const result = await rpgDb.execute(sql`
       WITH current_clan AS (
         SELECT kills FROM clans WHERE id = ${id} LIMIT 1
       ), higher_value AS (
@@ -159,13 +153,12 @@ export async function findClanPosition(id: number): Promise<{
     const higherClan = row?.higherId !== null && row?.higherName && row.higherKills !== null
       ? { id: Number(row.higherId), name: row.higherName, kills: Number(row.higherKills) }
       : null;
-    return {
+  return {
       position: Number(row?.position ?? 1),
       distanceToHigher: row?.distanceToHigher === null ? null : Number(row?.distanceToHigher),
       tiedAtPosition: Number(row?.tieCount ?? 0) > 1,
       higherClan,
-    };
-  });
+  };
 }
 
 function normalizeRanking(row: ClanRankingEntry): ClanRankingEntry {

@@ -1,5 +1,4 @@
 import type { DataResult } from "@/modules/shared/data-result";
-import { observeParseFailure } from "@/modules/shared/observability";
 import { findPlayerTextures, findSkinSelections, findUrlTextures } from "./skin.repository";
 import { resolveSkinRenderId } from "./skin-resolver";
 import type { ResolvedSkin } from "./skin.types";
@@ -27,7 +26,6 @@ export async function getSkinsForPlayers(
       const selection = selectionByUuid.get(uuid);
       const value = selection?.identifier ? values.get(selection.identifier) : undefined;
       const textureId = value ? parseTextureId(value) : null;
-      if (value && !textureId) observeParseFailure("skins.texture", "skins");
       const renderId = resolveSkinRenderId(selection, textureId);
       result.set(uuid, {
         renderId,

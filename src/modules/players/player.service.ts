@@ -1,5 +1,4 @@
 import type { DataResult } from "@/modules/shared/data-result";
-import { observeParseFailure } from "@/modules/shared/observability";
 import { getRanksForPlayers } from "@/modules/ranks/rank.service";
 import { getSkinsForPlayers } from "@/modules/skins/skin.service";
 import { findPlayerRankingPositions } from "@/modules/rankings/ranking.repository";
@@ -136,7 +135,6 @@ function parseNumberMap(value: string | null): Record<string, number> {
       ),
     );
   } catch {
-    observeParseFailure("players.duel-json", "rpg");
     return {};
   }
 }

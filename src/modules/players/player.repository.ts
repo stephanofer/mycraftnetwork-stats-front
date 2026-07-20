@@ -12,7 +12,6 @@ import {
   kothStats,
   luckPermsPlayers,
 } from "@/db/schema/rpg";
-import { observeQuery } from "@/modules/shared/observability";
 import type {
   CombatStats,
   KothProfile,
@@ -24,8 +23,7 @@ import { normalizeKothProfile } from "./koth-normalizers";
 import { COMPETITIVE_DUEL_STATUSES } from "./duel-rules";
 
 export async function findPlayerIdentity(identifier: string): Promise<PlayerIdentity | null> {
-  return observeQuery("players.identity", "rpg", async () => {
-    const normalized = identifier.toLowerCase();
+  const normalized = identifier.toLowerCase();
     const isUuid = normalized.includes("-");
     const deluxe = await rpgDb
       .select({ uuid: deluxeCombatPlayers.uuid, nickname: deluxeCombatPlayers.name })
@@ -50,13 +48,11 @@ export async function findPlayerIdentity(identifier: string): Promise<PlayerIden
         ),
       )
       .limit(1);
-    return luckPerms[0] ?? null;
-  });
+  return luckPerms[0] ?? null;
 }
 
 export async function findCombatStats(uuid: string): Promise<CombatStats | null> {
-  return observeQuery("players.combat", "rpg", async () => {
-    const rows = await rpgDb
+  const rows = await rpgDb
       .select({
         kills: deluxeCombatStats.kills,
         deaths: deluxeCombatStats.deaths,
@@ -69,7 +65,7 @@ export async function findCombatStats(uuid: string): Promise<CombatStats | null>
       .where(eq(deluxeCombatPlayers.uuid, uuid))
       .limit(1);
     const row = rows[0];
-    return row
+  return row
       ? {
           kills: row.kills ?? 0,
           deaths: row.deaths ?? 0,
@@ -77,13 +73,11 @@ export async function findCombatStats(uuid: string): Promise<CombatStats | null>
           streak: row.streak ?? 0,
           maxStreak: row.maxStreak ?? 0,
         }
-      : null;
-  });
+    : null;
 }
 
 export async function findKothProfile(uuid: string): Promise<KothProfile> {
-  return observeQuery("players.koth", "rpg", async () => {
-    const totalRows = await rpgDb
+  const totalRows = await rpgDb
       .select({ wins: ajlbKothWins.value })
       .from(ajlbKothWins)
       .where(and(eq(ajlbKothWins.id, uuid), gt(ajlbKothWins.value, 0)))
@@ -97,17 +91,15 @@ export async function findKothProfile(uuid: string): Promise<KothProfile> {
       .from(kothPlayers)
       .where(eq(kothPlayers.uuid, uuid))
       .limit(1);
-    return normalizeKothProfile(
+  return normalizeKothProfile(
       totalRows[0]?.wins,
       mapRows,
       activityRows[0]?.lastSeen ?? null,
-    );
-  });
+  );
 }
 
 export async function findDuelProfile(uuid: string): Promise<RawDuelProfile> {
-  return observeQuery("players.duels", "rpg", async () => {
-    const modes = await rpgDb
+  const modes = await rpgDb
         .select({
           mode: duelHistory.modeId,
           matches: sql<number>`COUNT(*)`,
@@ -130,7 +122,7 @@ export async function findDuelProfile(uuid: string): Promise<RawDuelProfile> {
       .from(duelPlayers)
       .where(eq(duelPlayers.uniqueId, uuid))
       .limit(1);
-    return {
+  return {
       modes: modes.filter((row) => row.mode !== null).map((row) => ({
         mode: row.mode as string,
         matches: Number(row.matches),
@@ -142,13 +134,11 @@ export async function findDuelProfile(uuid: string): Promise<RawDuelProfile> {
       })),
       otherStats: player[0]?.otherStats ?? null,
       lastTimePlayed: player[0]?.lastTimePlayed ?? null,
-    };
-  });
+  };
 }
 
 export async function findPlayerClan(uuid: string): Promise<PlayerClanSummary | null> {
-  return observeQuery("players.clan", "rpg", async () => {
-    const rows = await rpgDb
+  const rows = await rpgDb
       .select({
         id: clans.id,
         name: clans.name,
@@ -161,15 +151,14 @@ export async function findPlayerClan(uuid: string): Promise<PlayerClanSummary | 
       .innerJoin(clans, eq(clans.id, clanPlayers.clanId))
       .where(eq(clanPlayers.uuid, uuid))
       .limit(1);
-    const row = rows[0];
-    if (!row || !row.name) return null;
-    return {
+  const row = rows[0];
+  if (!row || !row.name) return null;
+  return {
       id: row.id,
       name: row.name,
       role: row.role === 2 ? "leader" : row.role === 1 ? "elevated" : "member",
       kills: row.kills,
       deaths: row.deaths,
       contributionPercent: row.clanKills > 0 ? (row.kills / row.clanKills) * 100 : 0,
-    };
-  });
+  };
 }

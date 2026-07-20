@@ -1,12 +1,10 @@
 // @ts-check
 import { defineConfig, envField, passthroughImageService } from "astro/config";
-import sentry from "@sentry/astro";
 import sitemap from "@astrojs/sitemap";
 import vercel from '@astrojs/vercel';
 
 
 // https://astro.build/config
-const SECRET_SENTRY_AUTH_TOKEN = process.env.SECRET_SENTRY_AUTH_TOKEN;
 const SITEMAP_PAGES = new Set([
   "https://estadisticas.mycraft.es/",
   "https://estadisticas.mycraft.es/ranking/rpg/kills",
@@ -49,21 +47,10 @@ export default defineConfig({
     schema: {
       RPG_DATABASE_URL: envField.string({ context: "server", access: "secret" }),
       SKINS_DATABASE_URL: envField.string({ context: "server", access: "secret" }),
-      SECRET_SENTRY_DSN: envField.string({
-        context: "client",
-        access: "public",
-      }),
     },
   },
   
   integrations: [
-    sentry({
-      sourceMapsUploadOptions: {
-        project: "mycraftnetwork-front",
-        authToken: SECRET_SENTRY_AUTH_TOKEN,
-        telemetry: false
-      },
-    }),
     sitemap({
       customPages: [...SITEMAP_PAGES],
       serialize(item) {

@@ -11,7 +11,6 @@ game mode; Survival 26.2 (`smp`) is published as an upcoming, independent mode.
 - Direct, server-only MariaDB access through Drizzle and `mysql2`.
 - Separate connection pools for RPG and SkinRestorer data.
 - Repository, service, and presentation boundaries under `src/modules`.
-- Sentry observability with sensitive values excluded.
 
 The application does not expose a public API. Database schemas mirror only the
 plugin tables used by the product, and the application contains no migration or
@@ -24,8 +23,6 @@ Create the local environment from `.env.example` and provide:
 
 - `RPG_DATABASE_URL`
 - `SKINS_DATABASE_URL`
-- `SECRET_SENTRY_DSN`
-- `SECRET_SENTRY_AUTH_TOKEN` when source maps must be uploaded
 
 Database URLs are server-only secrets. Never prefix them with `PUBLIC_` or pass
 them to client scripts.

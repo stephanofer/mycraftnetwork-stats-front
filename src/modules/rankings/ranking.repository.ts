@@ -1,6 +1,5 @@
 import { sql, type SQL } from "drizzle-orm";
 import { rpgDb } from "@/db/clients";
-import { observeQuery } from "@/modules/shared/observability";
 import type { RankingMetric, RankingPosition, RankingRow } from "./ranking.types";
 
 const combatValueColumns: Record<Exclude<RankingMetric, "koth">, SQL> = {
@@ -20,15 +19,12 @@ export async function findRanking(
   const offset = Math.min(Math.max(Math.trunc(requestedOffset), 0), MAX_OFFSET);
   const statement = rankingStatement(metric, limit, offset);
 
-  return observeQuery(`rankings.${metric}`, "rpg", async () => {
-    const result = await rpgDb.execute(statement);
-    return (result[0] as unknown as RankingRow[]).map(normalizeRankingRow);
-  });
+  const result = await rpgDb.execute(statement);
+  return (result[0] as unknown as RankingRow[]).map(normalizeRankingRow);
 }
 
 export async function findPlayerRankingPositions(uuid: string): Promise<RankingPosition[]> {
-  return observeQuery("players.ranking-positions", "rpg", async () => {
-    const result = await rpgDb.execute(sql`
+  const result = await rpgDb.execute(sql`
       WITH kills_base AS (${rankingUniverse("kills")}),
            maxstreak_base AS (${rankingUniverse("maxstreak")}),
            koth_base AS (${rankingUniverse("koth")}),
@@ -49,9 +45,8 @@ export async function findPlayerRankingPositions(uuid: string): Promise<RankingP
                 FROM metrics higher
                WHERE higher.metric = current.metric AND higher.value > current.value) - current.value AS distanceToHigher
       FROM current_values current
-    `);
-    return (result[0] as unknown as RankingPosition[]).map(normalizeRankingPosition);
-  });
+  `);
+  return (result[0] as unknown as RankingPosition[]).map(normalizeRankingPosition);
 }
 
 function rankingStatement(metric: RankingMetric, limit: number, offset: number): SQL {
