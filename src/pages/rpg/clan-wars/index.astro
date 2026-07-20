@@ -8,17 +8,19 @@ const clanWars = (await getCollection("clanWars")).sort(
     (a, b) => b.data.startsAt.valueOf() - a.data.startsAt.valueOf(),
 );
 
-const dateFormatter = new Intl.DateTimeFormat("es-ES", {
-    timeZone: "Europe/Madrid",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-});
-const timeFormatter = new Intl.DateTimeFormat("es-ES", {
-    timeZone: "Europe/Madrid",
-    hour: "2-digit",
-    minute: "2-digit",
-});
+const formatDate = (date: Date, timeZone: string) =>
+    new Intl.DateTimeFormat("es-PE", {
+        timeZone,
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    }).format(date);
+const formatTime = (date: Date, timeZone: string) =>
+    new Intl.DateTimeFormat("es-PE", {
+        timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(date);
 const statusLabels = {
     announced: "Próximo enfrentamiento",
     completed: "Finalizado",
@@ -99,13 +101,13 @@ const statusLabels = {
                                         <dt>Fecha</dt>
                                         <dd>
                                             <time datetime={data.startsAt.toISOString()}>
-                                                {dateFormatter.format(data.startsAt)}
+                                                {formatDate(data.startsAt, data.timezone)}
                                             </time>
                                         </dd>
                                     </div>
                                     <div>
                                         <dt>Hora</dt>
-                                        <dd class="number">{timeFormatter.format(data.startsAt)}</dd>
+                                        <dd class="number">{formatTime(data.startsAt, data.timezone)}</dd>
                                     </div>
                                     <div>
                                         <dt>Objetivo</dt>

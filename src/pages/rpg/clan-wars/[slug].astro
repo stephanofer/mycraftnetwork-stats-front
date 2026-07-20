@@ -25,21 +25,21 @@ const canonicalUrl = new URL(
 ).href;
 const socialImage = new URL(data.cover, Astro.site ?? Astro.url.origin).href;
 
-const fullDateFormatter = new Intl.DateTimeFormat("es-ES", {
+const fullDateFormatter = new Intl.DateTimeFormat("es-PE", {
     timeZone: data.timezone,
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
 });
-const timeFormatter = new Intl.DateTimeFormat("es-ES", {
+const timeFormatter = new Intl.DateTimeFormat("es-PE", {
     timeZone: data.timezone,
     hour: "2-digit",
     minute: "2-digit",
 });
 const formattedDate = fullDateFormatter.format(data.startsAt);
 const formattedTime = timeFormatter.format(data.startsAt);
-const compactDate = new Intl.DateTimeFormat("es-ES", {
+const compactDate = new Intl.DateTimeFormat("es-PE", {
     timeZone: data.timezone,
     day: "2-digit",
     month: "short",

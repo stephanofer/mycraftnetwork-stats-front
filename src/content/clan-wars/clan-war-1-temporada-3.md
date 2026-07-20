@@ -4,9 +4,9 @@ description: "El primer Clan War de la Temporada 3 se disputa en KOTH Castillo. 
 season: 3
 number: 1
 status: "announced"
-startsAt: 2026-07-25T22:00:00+02:00
-timezone: "Europe/Madrid"
-timezoneLabel: "hora peninsular española"
+startsAt: 2026-07-25T22:00:00-05:00
+timezone: "America/Lima"
+timezoneLabel: "hora de Perú"
 format: "points"
 objective:
   label: "Primer clan en alcanzar"
