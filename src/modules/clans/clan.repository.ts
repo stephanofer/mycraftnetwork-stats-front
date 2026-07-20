@@ -10,8 +10,10 @@ import {
 import { observeQuery } from "@/modules/shared/observability";
 import type { ClanRankingEntry, RawClanProfile } from "./clan.types";
 
-export async function findClanRanking(requestedLimit = 30): Promise<ClanRankingEntry[]> {
-  const limit = Math.min(Math.max(Math.trunc(requestedLimit), 1), 100);
+const MAX_CLAN_RANKING_ENTRIES = 40;
+
+export async function findClanRanking(requestedLimit = MAX_CLAN_RANKING_ENTRIES): Promise<ClanRankingEntry[]> {
+  const limit = Math.min(Math.max(Math.trunc(requestedLimit), 1), MAX_CLAN_RANKING_ENTRIES);
   return observeQuery("clans.ranking", "rpg", async () => {
     const result = await rpgDb.execute(sql`
       WITH ranked AS (
@@ -52,8 +54,7 @@ export async function findClanProfile(id: number): Promise<RawClanProfile | null
     const clan = clanRows[0];
     if (!clan?.name || !clan.leader) return null;
 
-    const [members, allyRows] = await Promise.all([
-      rpgDb
+    const members = await rpgDb
         .select({
           uuid: clanPlayers.uuid,
           deluxeName: deluxeCombatPlayers.name,
@@ -68,16 +69,15 @@ export async function findClanProfile(id: number): Promise<RawClanProfile | null
           luckPermsPlayers,
           sql`${luckPermsPlayers.uuid} = ${clanPlayers.uuid} AND LOWER(${luckPermsPlayers.username}) <> 'null'`,
         )
-        .where(eq(clanPlayers.clanId, id)),
-      rpgDb
-        .select({
-          clanId: clanAllies.clanId,
-          allyId: clanAllies.allyId,
-        })
-        .from(clanAllies)
-        .where(or(eq(clanAllies.clanId, id), eq(clanAllies.allyId, id))),
-    ]);
-    const allyIds = allyRows.map((row) => row.clanId === id ? row.allyId : row.clanId);
+        .where(eq(clanPlayers.clanId, id));
+    const allyRows = await rpgDb
+      .select({
+        clanId: clanAllies.clanId,
+        allyId: clanAllies.allyId,
+      })
+      .from(clanAllies)
+      .where(or(eq(clanAllies.clanId, id), eq(clanAllies.allyId, id)));
+    const allyIds = [...new Set(allyRows.map((row) => row.clanId === id ? row.allyId : row.clanId))];
     const allies = allyIds.length === 0
       ? []
       : await rpgDb
@@ -115,33 +115,55 @@ export async function findClanProfile(id: number): Promise<RawClanProfile | null
   });
 }
 
-export async function findClanPosition(kills: number): Promise<{
+export async function findClanPosition(id: number): Promise<{
   position: number;
   distanceToHigher: number | null;
   tiedAtPosition: boolean;
   higherClan: { id: number; name: string; kills: number } | null;
 }> {
   return observeQuery("clans.position", "rpg", async () => {
-    const [positionResult, higherRows, tieRows] = await Promise.all([
-      rpgDb.execute(sql`SELECT COUNT(DISTINCT kills) + 1 AS position FROM clans WHERE kills > ${kills}`),
-      rpgDb
-        .select({ id: clans.id, name: clans.name, kills: clans.kills })
-        .from(clans)
-        .where(sql`${clans.kills} = (SELECT MIN(kills) FROM clans WHERE kills > ${kills})`)
-        .orderBy(clans.id)
-        .limit(1),
-      rpgDb
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(clans)
-        .where(eq(clans.kills, kills)),
-    ]);
-    const positionRow = (positionResult[0] as unknown as Array<{ position: number }>)[0];
-    const higher = higherRows[0];
+    const result = await rpgDb.execute(sql`
+      WITH current_clan AS (
+        SELECT kills FROM clans WHERE id = ${id} LIMIT 1
+      ), higher_value AS (
+        SELECT MIN(clans.kills) AS kills
+        FROM clans, current_clan
+        WHERE clans.kills > current_clan.kills
+      )
+      SELECT
+        (SELECT COUNT(DISTINCT clans.kills) + 1
+           FROM clans, current_clan
+          WHERE clans.kills > current_clan.kills) AS position,
+        (SELECT COUNT(*)
+           FROM clans, current_clan
+          WHERE clans.kills = current_clan.kills) AS tieCount,
+        higher.id AS higherId,
+        higher.name AS higherName,
+        higher.kills AS higherKills,
+        higher.kills - current_clan.kills AS distanceToHigher
+      FROM current_clan
+      LEFT JOIN higher_value ON TRUE
+      LEFT JOIN clans higher ON higher.id = (
+        SELECT MIN(candidate.id) FROM clans candidate
+        WHERE candidate.kills = higher_value.kills
+      )
+    `);
+    const row = (result[0] as unknown as Array<{
+      position: number | string;
+      tieCount: number | string;
+      higherId: number | string | null;
+      higherName: string | null;
+      higherKills: number | string | null;
+      distanceToHigher: number | string | null;
+    }>)[0];
+    const higherClan = row?.higherId !== null && row?.higherName && row.higherKills !== null
+      ? { id: Number(row.higherId), name: row.higherName, kills: Number(row.higherKills) }
+      : null;
     return {
-      position: Number(positionRow.position),
-      distanceToHigher: higher ? higher.kills - kills : null,
-      tiedAtPosition: Number(tieRows[0]?.count ?? 0) > 1,
-      higherClan: higher?.name ? higher as { id: number; name: string; kills: number } : null,
+      position: Number(row?.position ?? 1),
+      distanceToHigher: row?.distanceToHigher === null ? null : Number(row?.distanceToHigher),
+      tiedAtPosition: Number(row?.tieCount ?? 0) > 1,
+      higherClan,
     };
   });
 }

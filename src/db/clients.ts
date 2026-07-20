@@ -5,6 +5,10 @@ import mysql, { type Pool, type QueryOptions } from "mysql2/promise";
 const QUERY_TIMEOUT_MS = 5_000;
 type QueryValues = Parameters<Pool["query"]>[1];
 type ExecuteValues = Parameters<Pool["execute"]>[1];
+type SessionConnection = {
+  query(statement: string, callback: (error: Error | null) => void): unknown;
+  destroy(): void;
+};
 
 const COMMON_POOL_OPTIONS = {
   waitForConnections: true,
@@ -15,23 +19,33 @@ const COMMON_POOL_OPTIONS = {
   keepAliveInitialDelay: 0,
 } as const;
 
-export const rpgPool = enforceQueryTimeout(mysql.createPool({
+export const rpgPool = configurePool(mysql.createPool({
   ...COMMON_POOL_OPTIONS,
   uri: RPG_DATABASE_URL,
   connectionLimit: 2,
+  maxIdle: 1,
 }));
 
-export const skinsPool = enforceQueryTimeout(mysql.createPool({
+export const skinsPool = configurePool(mysql.createPool({
   ...COMMON_POOL_OPTIONS,
   uri: SKINS_DATABASE_URL,
   connectionLimit: 1,
+  maxIdle: 0,
   queueLimit: 4,
 }));
 
 export const rpgDb = drizzle({ client: rpgPool });
 export const skinsDb = drizzle({ client: skinsPool });
 
-function enforceQueryTimeout(pool: Pool): Pool {
+function configurePool(pool: Pool): Pool {
+  pool.on("connection", (connection) => {
+    // mysql2/promise forwards the callback connection for pool events.
+    const session = connection as unknown as SessionConnection;
+    session.query("SET SESSION max_statement_time = 5", (error) => {
+      if (error) session.destroy();
+    });
+  });
+
   const query = pool.query.bind(pool);
   const execute = pool.execute.bind(pool);
   const options = (statement: string | QueryOptions): QueryOptions =>

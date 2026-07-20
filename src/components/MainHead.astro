@@ -7,6 +7,7 @@ interface Props {
     description?: string;
     canonicalUrl?: string;
     noindex?: boolean;
+    image?: string;
 }
 const {
     title = "Centro competitivo | Mycraft Network",
@@ -14,9 +15,8 @@ const {
     canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
         .href,
     noindex = false,
+    image = "https://imagedelivery.net/avcZT-oq9_igVytxtuW9-A/a00384b9-c99b-490a-76a6-b032ab357500/format=jpg",
 } = Astro.props;
-const image =
-    "https://imagedelivery.net/avcZT-oq9_igVytxtuW9-A/a00384b9-c99b-490a-76a6-b032ab357500/format=jpg";
 ---
 
 <SEO

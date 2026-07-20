@@ -14,32 +14,31 @@ export async function findPlayerPermissionSeeds(
   uuids: string[],
   nowSeconds = Math.floor(Date.now() / 1_000),
 ): Promise<PlayerPermissionSeed[]> {
-  if (uuids.length === 0) return [];
+  const uniqueUuids = [...new Set(uuids)].slice(0, 100);
+  if (uniqueUuids.length === 0) return [];
 
   return observeQuery("ranks.player-seeds", "rpg", async () => {
-    const [players, assignments] = await Promise.all([
-      rpgDb
+    const players = await rpgDb
         .select({ uuid: luckPermsPlayers.uuid, primaryGroup: luckPermsPlayers.primaryGroup })
         .from(luckPermsPlayers)
-        .where(inArray(luckPermsPlayers.uuid, uuids)),
-      rpgDb
-        .select({ uuid: luckPermsUserPermissions.uuid, permission: luckPermsUserPermissions.permission })
-        .from(luckPermsUserPermissions)
-        .where(
-          and(
-            inArray(luckPermsUserPermissions.uuid, uuids),
-            eq(luckPermsUserPermissions.value, 1),
-            inArray(luckPermsUserPermissions.server, validServers),
-            eq(luckPermsUserPermissions.world, "global"),
-            eq(luckPermsUserPermissions.contexts, "{}"),
-            or(
-              eq(luckPermsUserPermissions.expiry, 0),
-              gt(luckPermsUserPermissions.expiry, nowSeconds),
-            ),
-            like(luckPermsUserPermissions.permission, "group.%"),
+        .where(inArray(luckPermsPlayers.uuid, uniqueUuids));
+    const assignments = await rpgDb
+      .select({ uuid: luckPermsUserPermissions.uuid, permission: luckPermsUserPermissions.permission })
+      .from(luckPermsUserPermissions)
+      .where(
+        and(
+          inArray(luckPermsUserPermissions.uuid, uniqueUuids),
+          eq(luckPermsUserPermissions.value, 1),
+          inArray(luckPermsUserPermissions.server, validServers),
+          eq(luckPermsUserPermissions.world, "global"),
+          eq(luckPermsUserPermissions.contexts, "{}"),
+          or(
+            eq(luckPermsUserPermissions.expiry, 0),
+            gt(luckPermsUserPermissions.expiry, nowSeconds),
           ),
+          like(luckPermsUserPermissions.permission, "group.%"),
         ),
-    ]);
+      );
 
     const byPlayer = new Map<string, string[]>();
     for (const row of assignments) {

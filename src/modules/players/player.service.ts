@@ -19,18 +19,13 @@ import type {
 } from "./player.types";
 import { dateFromEpoch, normalizeEpochMs } from "./player-normalizers";
 import { sectionValue } from "./profile-availability";
+import {
+  isPlayerUsername,
+  isPlayerUuid,
+  normalizePlayerIdentifier,
+} from "./player-identifier";
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,16}$/;
-
-export function normalizePlayerIdentifier(identifier: string): string | null {
-  const value = identifier.trim();
-  if (USERNAME_PATTERN.test(value)) return value;
-  const compact = value.replaceAll("-", "");
-  if (!/^[0-9a-f]{32}$/i.test(compact)) return null;
-  const dashed = `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`;
-  return UUID_PATTERN.test(dashed) ? dashed.toLowerCase() : null;
-}
+export { normalizePlayerIdentifier } from "./player-identifier";
 
 export async function getPlayerProfile(identifier: string): Promise<DataResult<PlayerProfile>> {
   const normalized = normalizePlayerIdentifier(identifier);
@@ -38,23 +33,24 @@ export async function getPlayerProfile(identifier: string): Promise<DataResult<P
 
   try {
     const identity = await findPlayerIdentity(normalized);
-    if (!identity || !UUID_PATTERN.test(identity.uuid) || !USERNAME_PATTERN.test(identity.nickname)) {
+    if (!identity || !isPlayerUuid(identity.uuid) || !isPlayerUsername(identity.nickname)) {
       return { status: "not-found" };
     }
 
-    const [combatResult, rankingsResult, kothResult, duelsResult, clanResult] =
-      await Promise.allSettled([
-        findCombatStats(identity.uuid),
-        findPlayerRankingPositions(identity.uuid),
-        findKothProfile(identity.uuid),
-        findDuelProfile(identity.uuid),
-        findPlayerClan(identity.uuid),
-      ]);
-    // Profile repositories fan out internally. Resolve decorations separately so
-    // one request cannot overflow the deliberately small RPG connection queue.
+    const [combatResult, rankingsResult] = await Promise.allSettled([
+      findCombatStats(identity.uuid),
+      findPlayerRankingPositions(identity.uuid),
+    ]);
+    const [kothResult, duelsResult] = await Promise.allSettled([
+      findKothProfile(identity.uuid),
+      findDuelProfile(identity.uuid),
+    ]);
+    const [clanResult] = await Promise.allSettled([
+      findPlayerClan(identity.uuid),
+    ]);
     const [ranksResult, skinsResult] = await Promise.allSettled([
-        getRanksForPlayers([identity.uuid]),
-        getSkinsForPlayers([identity.uuid]),
+      getRanksForPlayers([identity.uuid]),
+      getSkinsForPlayers([identity.uuid]),
     ]);
     const unavailableSections: PlayerDataSection[] = [];
     const failures: PlayerPartialFailure[] = [];

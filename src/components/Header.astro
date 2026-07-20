@@ -38,6 +38,12 @@ const path = Astro.url.pathname;
                         ? "page"
                         : undefined}>Clanes</a
                 >
+                <a
+                    href="/rpg/clan-wars"
+                    aria-current={path.startsWith("/rpg/clan-wars")
+                        ? "page"
+                        : undefined}>Clan Wars</a
+                >
             </nav>
             <PlayerSearch />
             <a

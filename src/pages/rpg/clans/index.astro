@@ -2,10 +2,10 @@
 import StatusState from "@/components/StatusState.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { getClanRanking } from "@/modules/clans/clan.service";
-import { formatNumber, slugify } from "@/presentation";
+import { formatNumber } from "@/presentation";
 
 export const prerender = false;
-const result = await getClanRanking(50);
+const result = await getClanRanking(40);
 if (result.status === "unavailable") {
     Astro.response.status = 503;
     Astro.response.headers.set("Cache-Control", "no-store");
@@ -69,7 +69,7 @@ const placeLabels: Record<number, string> = {
                                 ]}
                                 role="row"
                                 aria-rowindex={index + 2}
-                                href={`/rpg/clans/${clan.id}/${slugify(clan.name)}`}
+                                href={`/rpg/clans/${clan.id}`}
                                 data-clan-row
                             >
                                 <span class="position number" role="cell">

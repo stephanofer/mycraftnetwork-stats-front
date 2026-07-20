@@ -1,0 +1,1096 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCollection } from "astro:content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+    const clanWars = await getCollection("clanWars");
+    return clanWars.map((clanWar) => ({
+        params: { slug: clanWar.id },
+        props: { clanWar },
+    }));
+}
+
+interface Props {
+    clanWar: CollectionEntry<"clanWars">;
+}
+
+const { clanWar } = Astro.props;
+const { data } = clanWar;
+const canonicalUrl = new URL(
+    `/rpg/clan-wars/${clanWar.id}`,
+    Astro.site ?? Astro.url.origin,
+).href;
+const socialImage = new URL(data.cover, Astro.site ?? Astro.url.origin).href;
+
+const fullDateFormatter = new Intl.DateTimeFormat("es-ES", {
+    timeZone: data.timezone,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+});
+const timeFormatter = new Intl.DateTimeFormat("es-ES", {
+    timeZone: data.timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+});
+const formattedDate = fullDateFormatter.format(data.startsAt);
+const formattedTime = timeFormatter.format(data.startsAt);
+const compactDate = new Intl.DateTimeFormat("es-ES", {
+    timeZone: data.timezone,
+    day: "2-digit",
+    month: "short",
+})
+    .format(data.startsAt)
+    .toUpperCase()
+    .replace(".", "");
+const formatLabel =
+    data.format === "points" ? "Puntos acumulados" : "Tiempo de control";
+const formatDescription =
+    data.format === "points"
+        ? "Controlá el KOTH y sostené la posición para sumar."
+        : "Controlá el KOTH durante el tiempo exigido para ganar.";
+const statusLabels = {
+    announced: "Anuncio oficial",
+    completed: "Evento finalizado",
+    cancelled: "Evento cancelado",
+};
+const eventStatus =
+    data.status === "cancelled"
+        ? "https://schema.org/EventCancelled"
+        : data.status === "completed"
+          ? "https://schema.org/EventCompleted"
+          : "https://schema.org/EventScheduled";
+const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: data.title,
+    description: data.description,
+    startDate: data.startsAt.toISOString(),
+    eventStatus,
+    eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+    location: {
+        "@type": "VirtualLocation",
+        url: "server.mycraft.es",
+    },
+    image: [socialImage],
+    organizer: {
+        "@type": "Organization",
+        name: "Mycraft Network",
+        url: "https://mycraft.es",
+    },
+};
+---
+
+<BaseLayout
+    title={`${data.title} | Mycraft Network`}
+    description={data.description}
+    {canonicalUrl}
+    image={socialImage}
+>
+    <script
+        is:inline
+        type="application/ld+json"
+        set:html={JSON.stringify(structuredData)}
+    />
+
+    <main
+        class="event-page"
+        data-event-page
+        data-starts-at={data.startsAt.toISOString()}
+    >
+        <section class="event-hero">
+            <img
+                class="hero-cover"
+                src={data.cover}
+                alt=""
+                width="1280"
+                height="720"
+                loading="eager"
+                decoding="async"
+            />
+            <div class="hero-overlay" aria-hidden="true"></div>
+            <div class="hero-grid" aria-hidden="true"></div>
+
+            <div class="shell hero-inner">
+                <a class="back-link" href="/rpg/clan-wars" data-hero-reveal>
+                    <span aria-hidden="true">←</span> Todos los Clan Wars
+                </a>
+
+                <div class="hero-main">
+                    <div class="hero-copy">
+                        <p class="announcement" data-hero-reveal>
+                            <span aria-hidden="true"></span>
+                            {statusLabels[data.status]}
+                        </p>
+                        <p class="event-index number" data-hero-reveal>
+                            CW / {String(data.number).padStart(2, "0")} / S{
+                                String(data.season).padStart(2, "0")
+                            }
+                        </p>
+                        <h1 data-hero-reveal>
+                            Clan War <strong class="number"
+                                >{String(data.number).padStart(2, "0")}</strong
+                            >
+                        </h1>
+                    </div>
+
+                    <div class="koth-seal" data-hero-reveal>
+                        <span>KOTH</span>
+                        <strong>{data.koth.name}</strong>
+                        <small>Zona de conflicto</small>
+                    </div>
+                </div>
+
+                <div class="event-strip" data-hero-reveal>
+                    <div class="date-block">
+                        <span class="fact-icon" aria-hidden="true">◆</span>
+                        <div>
+                            <small>Fecha del enfrentamiento</small>
+                            <strong>
+                                <time datetime={data.startsAt.toISOString()}
+                                    >{formattedDate}</time
+                                >
+                            </strong>
+                            <span>{formattedTime} · {data.timezoneLabel}</span>
+                        </div>
+                    </div>
+                    <div class="objective-block">
+                        <small>KOTH {data.koth.name} · {data.objective.label}</small>
+                        <strong class="number"
+                            >{
+                                data.objective.value.toLocaleString("es-ES")
+                            }</strong
+                        >
+                        <span>{data.objective.unit}</span>
+                    </div>
+                    <button class="join-button" type="button" data-copy-ip>
+                        <span>
+                            <small>Entrá al servidor</small>
+                            <strong>server.mycraft.es</strong>
+                        </span>
+                        <b data-copy-label>Copiar IP</b>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section
+            class="countdown-section shell"
+            aria-labelledby="countdown-title"
+            data-reveal-section
+        >
+            <div class="countdown-copy">
+                <p class="section-kicker">Prepará a tu clan</p>
+                <h2 id="countdown-title">El combate comienza en</h2>
+            </div>
+            <div class="countdown" data-countdown aria-live="off">
+                <div>
+                    <strong class="number" data-days>--</strong><span>Días</span
+                    >
+                </div>
+                <i aria-hidden="true">:</i>
+                <div>
+                    <strong class="number" data-hours>--</strong><span
+                        >Horas</span
+                    >
+                </div>
+                <i aria-hidden="true">:</i>
+                <div>
+                    <strong class="number" data-minutes>--</strong><span
+                        >Minutos</span
+                    >
+                </div>
+                <i aria-hidden="true">:</i>
+                <div>
+                    <strong class="number" data-seconds>--</strong><span
+                        >Segundos</span
+                    >
+                </div>
+            </div>
+        </section>
+
+        <section class="briefing shell" aria-labelledby="briefing-title">
+            <div class="briefing-main">
+                <div class="section-intro" data-reveal-section>
+                    <p class="eyebrow">Dinámica del evento</p>
+                    <h2 id="briefing-title">Cómo se disputa</h2>
+                </div>
+
+                <div class="mission-grid" data-reveal-section>
+                    <article class="mission-card primary">
+                        <span class="card-label number">01</span>
+                        <div class="mission-icon" aria-hidden="true">◇</div>
+                        <p>Modalidad</p>
+                        <h3>{formatLabel}</h3>
+                        <span>{formatDescription}</span>
+                    </article>
+                    <article class="mission-card">
+                        <span class="card-label number">02</span>
+                        <div class="mission-icon" aria-hidden="true">⌖</div>
+                        <p>Destino</p>
+                        <h3>{data.koth.name}</h3>
+                        <code>{data.koth.warp}</code>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="rewards-section" aria-labelledby="rewards-title">
+            <div class="shell">
+                <div class="rewards-heading" data-reveal-section>
+                    <div>
+                        <p class="eyebrow">Botín del campeón</p>
+                        <h2 id="rewards-title">Recompensas en juego</h2>
+                    </div>
+                </div>
+
+                <div class="reward-grid">
+                    {
+                        data.rewards.map((reward, index) => (
+                            <article class="reward-card" data-reward-card>
+                                <span class="reward-index number">
+                                    0{index + 1}
+                                </span>
+                                <div class="reward-gem" aria-hidden="true">
+                                    <i />
+                                </div>
+                                <h3>{reward.name}</h3>
+                                {reward.description && (
+                                    <p>{reward.description}</p>
+                                )}
+                            </article>
+                        ))
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="rules-section shell" aria-labelledby="rules-title">
+            <div class="rules-heading" data-reveal-section>
+                <p class="eyebrow">Competencia limpia</p>
+                <h2 id="rules-title">Entrá a ganar.<br />Jugá limpio.</h2>
+                <p>
+                    Participar implica aceptar estas condiciones. No conocerlas
+                    no exime de su cumplimiento.
+                </p>
+            </div>
+
+            <div class="rules-content">
+                <div class="requirements" data-reveal-section>
+                    <h3>Antes de entrar</h3>
+                    <ol>
+                        {
+                            data.requirements.map((requirement) => (
+                                <li>{requirement}</li>
+                            ))
+                        }
+                    </ol>
+                </div>
+                <div class="rules-list" data-reveal-section>
+                    <h3>Reglas del enfrentamiento</h3>
+                    <ul>
+                        {
+                            data.rules.map((rule, index) => (
+                                <li>
+                                    <span class="number">
+                                        R{String(index + 1).padStart(2, "0")}
+                                    </span>
+                                    <p>{rule}</p>
+                                </li>
+                            ))
+                        }
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="final-cta shell" data-reveal-section>
+            <div>
+                <p>
+                    {compactDate} · {formattedTime} · KOTH {
+                        data.koth.name.toUpperCase()
+                    }
+                </p>
+                <h2>¿Tu clan va a mirar<br />o va a conquistar?</h2>
+            </div>
+            <button class="join-button large" type="button" data-copy-ip>
+                <span
+                    ><small>IP del servidor</small><strong
+                        >server.mycraft.es</strong
+                    ></span
+                >
+                <b data-copy-label>Copiar IP</b>
+            </button>
+        </section>
+    </main>
+</BaseLayout>
+
+<script>
+    import gsap from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    const page = document.querySelector<HTMLElement>("[data-event-page]");
+    if (page) {
+        const startTime = new Date(page.dataset.startsAt ?? "").valueOf();
+        const countdown = page.querySelector<HTMLElement>("[data-countdown]");
+        let timer: number | undefined;
+
+        const updateCountdown = () => {
+            const remaining = Math.max(0, startTime - Date.now());
+            const values = {
+                days: Math.floor(remaining / 86_400_000),
+                hours: Math.floor((remaining / 3_600_000) % 24),
+                minutes: Math.floor((remaining / 60_000) % 60),
+                seconds: Math.floor((remaining / 1_000) % 60),
+            };
+            Object.entries(values).forEach(([key, value]) => {
+                const target = countdown?.querySelector(`[data-${key}]`);
+                if (target) target.textContent = String(value).padStart(2, "0");
+            });
+            if (remaining === 0 && timer) window.clearInterval(timer);
+        };
+
+        if (Number.isFinite(startTime)) {
+            updateCountdown();
+            timer = window.setInterval(updateCountdown, 1_000);
+        }
+
+        page.querySelectorAll<HTMLButtonElement>("[data-copy-ip]").forEach(
+            (button) => {
+                button.addEventListener("click", async () => {
+                    const label =
+                        button.querySelector<HTMLElement>("[data-copy-label]");
+                    try {
+                        await navigator.clipboard.writeText(
+                            "server.mycraft.es",
+                        );
+                        if (label) label.textContent = "IP copiada";
+                        window.setTimeout(() => {
+                            if (label) label.textContent = "Copiar IP";
+                        }, 2_000);
+                    } catch {
+                        if (label) label.textContent = "server.mycraft.es";
+                    }
+                });
+            },
+        );
+
+        const media = gsap.matchMedia();
+        media.add("(prefers-reduced-motion: no-preference)", () => {
+            const heroItems = page.querySelectorAll("[data-hero-reveal]");
+            const sections = page.querySelectorAll("[data-reveal-section]");
+            const rewards = page.querySelectorAll("[data-reward-card]");
+            const intro = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+            intro
+                .from(".hero-cover", {
+                    scale: 1.06,
+                    duration: 1.4,
+                    ease: "power2.out",
+                })
+                .from(
+                    heroItems,
+                    {
+                        autoAlpha: 0,
+                        y: 20,
+                        duration: 0.62,
+                        stagger: 0.065,
+                        clearProps: "opacity,visibility,transform",
+                    },
+                    0.15,
+                );
+
+            gsap.set([...sections, ...rewards], { autoAlpha: 0, y: 28 });
+            const triggers = ScrollTrigger.batch([...sections, ...rewards], {
+                start: "top 88%",
+                once: true,
+                interval: 0.08,
+                batchMax: 4,
+                onEnter: (batch) =>
+                    gsap.to(batch, {
+                        autoAlpha: 1,
+                        y: 0,
+                        duration: 0.65,
+                        stagger: 0.09,
+                        ease: "power3.out",
+                        overwrite: "auto",
+                    }),
+            });
+
+            return () => triggers.forEach((trigger) => trigger.kill());
+        });
+
+        window.addEventListener(
+            "pagehide",
+            () => {
+                if (timer) window.clearInterval(timer);
+                media.revert();
+            },
+            { once: true },
+        );
+    }
+</script>
+
+<style>
+    .event-page {
+        overflow: hidden;
+    }
+    .event-hero {
+        position: relative;
+        isolation: isolate;
+        min-height: min(650px, calc(100vh - 40px));
+        display: flex;
+        align-items: stretch;
+        background: #090b0f;
+    }
+    .hero-cover,
+    .hero-overlay,
+    .hero-grid {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+    .hero-cover {
+        z-index: -3;
+        object-fit: cover;
+        object-position: center 42%;
+        will-change: transform;
+    }
+    .hero-overlay {
+        z-index: -2;
+        background:
+            linear-gradient(
+                90deg,
+                rgb(5 7 10 / 97%) 0%,
+                rgb(5 7 10 / 84%) 43%,
+                rgb(5 7 10 / 35%) 72%,
+                rgb(5 7 10 / 58%) 100%
+            ),
+            linear-gradient(
+                0deg,
+                #07090d 0%,
+                transparent 32%,
+                rgb(7 9 13 / 28%) 100%
+            );
+    }
+    .hero-grid {
+        z-index: -1;
+        opacity: 0.2;
+        background-image:
+            linear-gradient(rgb(255 255 255 / 7%) 1px, transparent 1px),
+            linear-gradient(90deg, rgb(255 255 255 / 7%) 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: linear-gradient(90deg, black, transparent 73%);
+    }
+    .hero-inner {
+        display: flex;
+        flex-direction: column;
+        padding-block: 2rem 2.5rem;
+    }
+    .back-link {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 0.55rem;
+        color: #c2c6ce;
+        font-size: 0.72rem;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+    }
+    .back-link span {
+        color: var(--accent-bright);
+        transition: transform 180ms ease;
+    }
+    .back-link:hover span {
+        transform: translateX(-4px);
+    }
+    .hero-main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        flex: 1;
+        align-items: center;
+        gap: 4rem;
+        padding-block: 3rem;
+    }
+    .announcement {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin: 0 0 1.2rem;
+        color: var(--accent-bright);
+        font-size: 0.7rem;
+        font-weight: 850;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+    .announcement span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 5px rgb(255 113 71 / 13%);
+    }
+    .event-index {
+        margin: 0 0 0.65rem;
+        color: #9ea5b2;
+        font-size: 0.8rem;
+        letter-spacing: 0.16em;
+    }
+    .hero-copy h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(3rem, 6vw, 5rem);
+        font-weight: 620;
+        letter-spacing: -0.015em;
+        line-height: 0.94;
+        text-transform: uppercase;
+    }
+    .hero-copy h1 strong {
+        color: transparent;
+        font-weight: 400;
+        -webkit-text-stroke: 1px rgb(255 255 255 / 62%);
+    }
+    .koth-seal {
+        display: grid;
+        width: 180px;
+        aspect-ratio: 1;
+        place-content: center;
+        border: 1px solid rgb(255 255 255 / 32%);
+        outline: 1px solid rgb(255 255 255 / 12%);
+        outline-offset: 9px;
+        background: rgb(7 9 13 / 43%);
+        text-align: center;
+        backdrop-filter: blur(8px);
+        transform: rotate(2deg);
+    }
+    .koth-seal span,
+    .koth-seal small {
+        font-size: 0.58rem;
+        font-weight: 850;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+    }
+    .koth-seal span {
+        color: var(--accent-bright);
+    }
+    .koth-seal strong {
+        margin-block: 0.45rem;
+        font-family: var(--display);
+        font-size: 1.65rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .koth-seal small {
+        color: #aeb4bf;
+    }
+    .event-strip {
+        display: grid;
+        grid-template-columns: 1.15fr 0.65fr auto;
+        min-height: 100px;
+        border: 1px solid rgb(255 255 255 / 14%);
+        background: rgb(9 12 17 / 88%);
+        backdrop-filter: blur(16px);
+    }
+    .date-block,
+    .objective-block {
+        display: flex;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-right: 1px solid var(--line);
+    }
+    .date-block {
+        gap: 1rem;
+    }
+    .fact-icon {
+        color: var(--accent-bright);
+        font-size: 1.1rem;
+    }
+    .date-block div {
+        display: grid;
+    }
+    .date-block small,
+    .objective-block small,
+    .join-button small {
+        color: var(--faint);
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    .date-block strong {
+        text-transform: capitalize;
+    }
+    .date-block div > span {
+        margin-top: 0.15rem;
+        color: var(--muted);
+        font-size: 0.68rem;
+    }
+    .objective-block {
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 0 0.5rem;
+        align-content: center;
+    }
+    .objective-block small {
+        grid-column: 1 / -1;
+    }
+    .objective-block strong {
+        color: var(--gold);
+        font-size: 1.9rem;
+        line-height: 1;
+    }
+    .objective-block > span {
+        align-self: end;
+        color: var(--muted);
+        font-size: 0.7rem;
+    }
+    .join-button {
+        display: flex;
+        min-width: 255px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.2rem;
+        padding: 1rem 1.25rem;
+        border: 0;
+        background: var(--accent);
+        color: white;
+        text-align: left;
+        cursor: pointer;
+        transition: background 180ms ease;
+    }
+    .join-button:hover {
+        background: var(--accent-bright);
+    }
+    .join-button span {
+        display: grid;
+    }
+    .join-button small {
+        color: rgb(255 255 255 / 72%);
+    }
+    .join-button strong {
+        margin-top: 0.2rem;
+        font-size: 0.87rem;
+    }
+    .join-button b {
+        padding: 0.42rem 0.6rem;
+        border: 1px solid rgb(255 255 255 / 34%);
+        font-size: 0.62rem;
+        white-space: nowrap;
+    }
+
+    .countdown-section {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 3rem;
+        padding-block: clamp(3rem, 7vw, 5.5rem);
+        border-bottom: 1px solid var(--line);
+    }
+    .countdown-copy p {
+        margin: 0 0 0.4rem;
+    }
+    .countdown-copy h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+        letter-spacing: 0;
+    }
+    .countdown {
+        display: flex;
+        align-items: start;
+        gap: clamp(0.65rem, 2vw, 1.5rem);
+    }
+    .countdown div {
+        display: grid;
+        min-width: 72px;
+        text-align: center;
+    }
+    .countdown strong {
+        font-size: clamp(1.85rem, 4vw, 2.8rem);
+        font-weight: 400;
+        line-height: 0.95;
+    }
+    .countdown span {
+        margin-top: 0.5rem;
+        color: var(--faint);
+        font-size: 0.56rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    .countdown i {
+        color: var(--accent);
+        font-family: var(--numeric);
+        font-size: 2rem;
+        font-style: normal;
+        line-height: 1;
+    }
+
+    .briefing {
+        padding-block: clamp(4rem, 8vw, 7rem);
+    }
+    .section-intro {
+        max-width: 740px;
+    }
+    .section-intro h2,
+    .rewards-heading h2,
+    .rules-heading h2,
+    .final-cta h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(2rem, 3.5vw, 3.15rem);
+        letter-spacing: -0.01em;
+        line-height: 1.02;
+    }
+    .mission-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        margin-top: 2.5rem;
+        border: 1px solid var(--line);
+    }
+    .mission-card {
+        position: relative;
+        min-height: 220px;
+        padding: 1.5rem;
+        border-right: 1px solid var(--line);
+        background: #0d1016;
+    }
+    .mission-card:last-child {
+        border-right: 0;
+    }
+    .mission-card.primary {
+        background: linear-gradient(145deg, rgb(228 87 46 / 13%), #0d1016 62%);
+    }
+    .card-label {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        color: var(--faint);
+        font-size: 0.65rem;
+    }
+    .mission-icon {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border: 1px solid var(--line-bright);
+        color: var(--accent-bright);
+        font-size: 1.25rem;
+    }
+    .mission-card p {
+        margin: 2.6rem 0 0.35rem;
+        color: var(--faint);
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .mission-card h3 {
+        margin: 0 0 0.6rem;
+        font-family: var(--display);
+        font-size: 1.35rem;
+    }
+    .mission-card > span:last-child {
+        color: var(--muted);
+        font-size: 0.72rem;
+    }
+    .mission-card code {
+        color: var(--cyan);
+        font-family: var(--numeric);
+        font-size: 0.82rem;
+    }
+    .rewards-section {
+        padding-block: clamp(5rem, 10vw, 8rem);
+        border-block: 1px solid var(--line);
+        background: #0b0e13;
+    }
+    .rewards-heading {
+        margin-bottom: 3rem;
+    }
+    .reward-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+    .reward-card {
+        position: relative;
+        min-height: 275px;
+        overflow: hidden;
+        padding: 1.5rem;
+        border: 1px solid var(--line);
+        background: linear-gradient(145deg, #151a23, #0b0e13);
+    }
+    .reward-card::after {
+        content: "";
+        position: absolute;
+        right: -3rem;
+        bottom: -4rem;
+        width: 10rem;
+        height: 10rem;
+        border: 1px solid rgb(232 189 99 / 10%);
+        transform: rotate(45deg);
+    }
+    .reward-index {
+        position: absolute;
+        top: 1.2rem;
+        right: 1.2rem;
+        color: var(--faint);
+        font-size: 0.7rem;
+    }
+    .reward-gem {
+        position: relative;
+        width: 54px;
+        height: 54px;
+        margin-bottom: 3.4rem;
+        transform: rotate(45deg);
+        border: 1px solid rgb(232 189 99 / 58%);
+        background: rgb(232 189 99 / 7%);
+    }
+    .reward-gem i {
+        position: absolute;
+        inset: 14px;
+        border: 1px solid var(--gold);
+        background: rgb(232 189 99 / 20%);
+    }
+    .reward-card h3 {
+        margin: 0 0 0.55rem;
+        font-family: var(--display);
+        font-size: 1.45rem;
+    }
+    .reward-card p {
+        max-width: 33ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.74rem;
+    }
+
+    .rules-section {
+        display: grid;
+        grid-template-columns: 0.75fr 1.25fr;
+        gap: clamp(3rem, 8vw, 7rem);
+        padding-block: clamp(5rem, 10vw, 9rem);
+    }
+    .rules-heading > p:last-child {
+        max-width: 40ch;
+        margin-top: 1.5rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+    }
+    .rules-content {
+        display: grid;
+        gap: 2.5rem;
+    }
+    .rules-content h3 {
+        margin: 0 0 1.2rem;
+        font-family: var(--display);
+        font-size: 1.25rem;
+    }
+    .requirements ol {
+        display: grid;
+        gap: 0.7rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: requirements;
+    }
+    .requirements li {
+        display: flex;
+        gap: 0.9rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+        counter-increment: requirements;
+    }
+    .requirements li::before {
+        content: counter(requirements, decimal-leading-zero);
+        color: var(--cyan);
+        font-family: var(--numeric);
+        font-size: 0.7rem;
+    }
+    .rules-list ul {
+        margin: 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+        list-style: none;
+    }
+    .rules-list li {
+        display: grid;
+        grid-template-columns: 46px 1fr;
+        gap: 1rem;
+        padding-block: 1.1rem;
+        border-bottom: 1px solid var(--line);
+    }
+    .rules-list li span {
+        color: var(--accent-bright);
+        font-size: 0.65rem;
+    }
+    .rules-list li p {
+        margin: 0;
+        color: #bdc1ca;
+        font-size: 0.78rem;
+    }
+
+    .final-cta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 3rem;
+        margin-bottom: clamp(4rem, 9vw, 7rem);
+        padding: clamp(2rem, 5vw, 4rem);
+        border: 1px solid var(--line-bright);
+        background: linear-gradient(
+            110deg,
+            rgb(228 87 46 / 16%),
+            #11151d 53%,
+            #0b0e13
+        );
+    }
+    .final-cta p {
+        margin: 0 0 1rem;
+        color: var(--accent-bright);
+        font-size: 0.65rem;
+        font-weight: 850;
+        letter-spacing: 0.14em;
+    }
+    .final-cta h2 {
+        font-size: clamp(2rem, 3.8vw, 3.2rem);
+        letter-spacing: -0.005em;
+        line-height: 1.04;
+    }
+    .join-button.large {
+        min-height: 85px;
+        flex: 0 0 285px;
+    }
+
+    @media (max-width: 920px) {
+        .event-hero {
+            min-height: auto;
+        }
+        .hero-main {
+            grid-template-columns: 1fr;
+            padding-block: 4.5rem;
+        }
+        .koth-seal {
+            display: none;
+        }
+        .event-strip {
+            grid-template-columns: 1fr 1fr;
+        }
+        .join-button {
+            grid-column: 1 / -1;
+            min-height: 70px;
+        }
+        .rules-section {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 720px) {
+        .hero-overlay {
+            background:
+                linear-gradient(90deg, rgb(5 7 10 / 93%), rgb(5 7 10 / 64%)),
+                linear-gradient(0deg, #07090d, transparent 60%);
+        }
+        .hero-inner {
+            padding-top: 1.3rem;
+        }
+        .hero-main {
+            padding-block: 3.25rem 2.5rem;
+        }
+        .hero-copy h1 {
+            font-size: clamp(2.75rem, 10vw, 3.6rem);
+            letter-spacing: 0;
+            line-height: 1;
+        }
+        .countdown-section {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        .countdown {
+            justify-content: space-between;
+        }
+        .countdown div {
+            min-width: 50px;
+        }
+        .mission-grid {
+            grid-template-columns: 1fr;
+        }
+        .mission-card {
+            min-height: 210px;
+            border-right: 0;
+            border-bottom: 1px solid var(--line);
+        }
+        .mission-card:last-child {
+            border-bottom: 0;
+        }
+        .reward-grid {
+            grid-template-columns: 1fr;
+        }
+        .reward-card {
+            min-height: 230px;
+        }
+        .reward-gem {
+            margin-bottom: 2rem;
+        }
+        .final-cta {
+            align-items: stretch;
+            flex-direction: column;
+        }
+        .join-button.large {
+            flex: auto;
+            width: 100%;
+        }
+    }
+    @media (max-width: 640px) {
+        .event-strip {
+            grid-template-columns: 1fr;
+        }
+        .date-block,
+        .objective-block {
+            min-height: 88px;
+            border-right: 0;
+            border-bottom: 1px solid var(--line);
+        }
+        .join-button {
+            grid-column: auto;
+            width: 100%;
+            min-width: 0;
+        }
+        .countdown {
+            gap: 0.35rem;
+        }
+        .countdown strong {
+            font-size: 1.75rem;
+        }
+        .countdown i {
+            font-size: 1.3rem;
+        }
+        .countdown span {
+            font-size: 0.48rem;
+        }
+        .briefing {
+            padding-block: 4rem;
+        }
+        .final-cta {
+            padding: 1.4rem;
+        }
+    }
+    @media (max-width: 380px) {
+        .hero-copy h1 { font-size: 2.55rem; }
+        .announcement { font-size: .62rem; letter-spacing: .13em; }
+        .event-index { font-size: .7rem; }
+        .countdown div { min-width: 42px; }
+        .countdown strong { font-size: 1.55rem; }
+        .countdown i { font-size: 1rem; }
+        .section-intro h2,
+        .rewards-heading h2,
+        .rules-heading h2,
+        .final-cta h2 { font-size: 1.9rem; }
+        .join-button { gap: .65rem; padding-inline: 1rem; }
+    }
+</style>

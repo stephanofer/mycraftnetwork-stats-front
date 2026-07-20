@@ -26,12 +26,13 @@ import { COMPETITIVE_DUEL_STATUSES } from "./duel-rules";
 export async function findPlayerIdentity(identifier: string): Promise<PlayerIdentity | null> {
   return observeQuery("players.identity", "rpg", async () => {
     const normalized = identifier.toLowerCase();
+    const isUuid = normalized.includes("-");
     const deluxe = await rpgDb
       .select({ uuid: deluxeCombatPlayers.uuid, nickname: deluxeCombatPlayers.name })
       .from(deluxeCombatPlayers)
-      .where(
-        sql`LOWER(${deluxeCombatPlayers.uuid}) = ${normalized} OR LOWER(${deluxeCombatPlayers.name}) = ${normalized}`,
-      )
+      .where(isUuid
+        ? eq(deluxeCombatPlayers.uuid, normalized)
+        : eq(deluxeCombatPlayers.name, normalized))
       .limit(1);
     if (deluxe[0]?.uuid && deluxe[0].nickname) {
       return { uuid: deluxe[0].uuid.toLowerCase(), nickname: deluxe[0].nickname };
@@ -41,7 +42,12 @@ export async function findPlayerIdentity(identifier: string): Promise<PlayerIden
       .select({ uuid: luckPermsPlayers.uuid, nickname: luckPermsPlayers.username })
       .from(luckPermsPlayers)
       .where(
-        sql`(LOWER(${luckPermsPlayers.uuid}) = ${normalized} OR LOWER(${luckPermsPlayers.username}) = ${normalized}) AND LOWER(${luckPermsPlayers.username}) <> 'null'`,
+        and(
+          isUuid
+            ? eq(luckPermsPlayers.uuid, normalized)
+            : eq(luckPermsPlayers.username, normalized),
+          sql`LOWER(${luckPermsPlayers.username}) <> 'null'`,
+        ),
       )
       .limit(1);
     return luckPerms[0] ?? null;
@@ -77,18 +83,20 @@ export async function findCombatStats(uuid: string): Promise<CombatStats | null>
 
 export async function findKothProfile(uuid: string): Promise<KothProfile> {
   return observeQuery("players.koth", "rpg", async () => {
-    const [totalRows, mapRows, activityRows] = await Promise.all([
-      rpgDb
-        .select({ wins: ajlbKothWins.value })
-        .from(ajlbKothWins)
-        .where(and(eq(ajlbKothWins.id, uuid), gt(ajlbKothWins.value, 0)))
-        .limit(1),
-      rpgDb
-        .select({ name: kothStats.kothName, wins: kothStats.wins })
-        .from(kothStats)
-        .where(eq(kothStats.playerUuid, uuid)),
-      rpgDb.select({ lastSeen: kothPlayers.lastSeen }).from(kothPlayers).where(eq(kothPlayers.uuid, uuid)).limit(1),
-    ]);
+    const totalRows = await rpgDb
+      .select({ wins: ajlbKothWins.value })
+      .from(ajlbKothWins)
+      .where(and(eq(ajlbKothWins.id, uuid), gt(ajlbKothWins.value, 0)))
+      .limit(1);
+    const mapRows = await rpgDb
+      .select({ name: kothStats.kothName, wins: kothStats.wins })
+      .from(kothStats)
+      .where(eq(kothStats.playerUuid, uuid));
+    const activityRows = await rpgDb
+      .select({ lastSeen: kothPlayers.lastSeen })
+      .from(kothPlayers)
+      .where(eq(kothPlayers.uuid, uuid))
+      .limit(1);
     return normalizeKothProfile(
       totalRows[0]?.wins,
       mapRows,
@@ -99,8 +107,7 @@ export async function findKothProfile(uuid: string): Promise<KothProfile> {
 
 export async function findDuelProfile(uuid: string): Promise<RawDuelProfile> {
   return observeQuery("players.duels", "rpg", async () => {
-    const [modes, player] = await Promise.all([
-      rpgDb
+    const modes = await rpgDb
         .select({
           mode: duelHistory.modeId,
           matches: sql<number>`COUNT(*)`,
@@ -117,13 +124,12 @@ export async function findDuelProfile(uuid: string): Promise<RawDuelProfile> {
             inArray(duelHistory.status, [...COMPETITIVE_DUEL_STATUSES]),
           ),
         )
-        .groupBy(duelHistory.modeId),
-      rpgDb
-        .select({ otherStats: duelPlayers.otherStats, lastTimePlayed: duelPlayers.lastTimePlayed })
-        .from(duelPlayers)
-        .where(eq(duelPlayers.uniqueId, uuid))
-        .limit(1),
-    ]);
+        .groupBy(duelHistory.modeId);
+    const player = await rpgDb
+      .select({ otherStats: duelPlayers.otherStats, lastTimePlayed: duelPlayers.lastTimePlayed })
+      .from(duelPlayers)
+      .where(eq(duelPlayers.uniqueId, uuid))
+      .limit(1);
     return {
       modes: modes.filter((row) => row.mode !== null).map((row) => ({
         mode: row.mode as string,

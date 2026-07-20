@@ -12,10 +12,11 @@ export const prerender = false;
 const { mode, type } = Astro.params;
 if (mode !== "rpg" || !type || !isRankingMetric(type))
     return Astro.redirect("/ranking/rpg/kills", 301);
-const result = await getRanking(type, 50);
+const result = await getRanking(type, 40);
 if (result.status === "unavailable") {
     Astro.response.status = 503;
     Astro.response.headers.set("Cache-Control", "no-store");
+    Astro.response.headers.set("Retry-After", "30");
 }
 const title = `${metricLabels[type]} · RPG Temporada III | Mycraft Network`;
 ---

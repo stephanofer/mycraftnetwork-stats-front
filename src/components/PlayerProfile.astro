@@ -6,7 +6,6 @@ import {
     formatNumber,
     labelDuelMode,
     metricLabels,
-    slugify,
 } from "@/presentation";
 import PlayerIdentity from "./PlayerIdentity.astro";
 
@@ -54,7 +53,7 @@ const clanRoleLabel =
             {
                 player.clan && (
                     <a
-                        href={`/rpg/clans/${player.clan.id}/${slugify(player.clan.name)}`}
+                        href={`/rpg/clans/${player.clan.id}`}
                     >
                         <>
                             <small>Clan actual</small>
@@ -457,7 +456,7 @@ const clanRoleLabel =
                     </div>
                     <a
                         class="button"
-                        href={`/rpg/clans/${player.clan.id}/${slugify(player.clan.name)}`}
+                        href={`/rpg/clans/${player.clan.id}`}
                     >
                         Ver clan
                     </a>

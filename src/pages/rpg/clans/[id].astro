@@ -1,0 +1,1035 @@
+---
+import PlayerIdentity from "@/components/PlayerIdentity.astro";
+import StatusState from "@/components/StatusState.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getClanProfile } from "@/modules/clans/clan.service";
+import { formatNumber } from "@/presentation";
+
+export const prerender = false;
+const { id: idParam } = Astro.params;
+const decimalId =
+    idParam !== undefined && /^\d+$/.test(idParam) ? Number(idParam) : NaN;
+const validId = Number.isSafeInteger(decimalId) && decimalId > 0;
+const result = validId
+    ? await getClanProfile(decimalId)
+    : { status: "not-found" as const };
+if (result.status === "ok" && idParam !== String(result.data.id)) {
+    return Astro.redirect(`/rpg/clans/${result.data.id}`, 301);
+}
+if (result.status === "not-found") {
+    Astro.response.status = 404;
+    Astro.response.headers.set(
+        "Cache-Control",
+        "public, max-age=0, s-maxage=60",
+    );
+}
+if (result.status === "unavailable") {
+    Astro.response.status = 503;
+    Astro.response.headers.set("Cache-Control", "no-store");
+    Astro.response.headers.set("Retry-After", "30");
+}
+const title =
+    result.status === "ok"
+        ? `${result.data.name} · Clan RPG | Mycraft Network`
+        : result.status === "not-found"
+          ? "Clan no encontrado | Mycraft Network"
+          : "Servicio no disponible | Mycraft Network";
+---
+
+<BaseLayout
+    {title}
+    noindex={result.status !== "ok"}
+    description={result.status === "ok"
+        ? `Perfil competitivo del clan ${result.data.name} en RPG Temporada III.`
+        : undefined}
+>
+    <main class="page shell">
+        {
+            result.status === "ok" ? (
+                <article class="clan-profile" data-clan-profile>
+                    <header class="hero panel" data-clan-hero>
+                        <div class="clan-image" aria-hidden="true">
+                            <span>
+                                {result.data.prefix ||
+                                    result.data.name.slice(0, 2).toUpperCase()}
+                            </span>
+                            {result.data.imageUrl && (
+                                <img
+                                    src={result.data.imageUrl}
+                                    alt=""
+                                    width="128"
+                                    height="128"
+                                    loading="eager"
+                                    decoding="async"
+                                />
+                            )}
+                        </div>
+                        <div class="hero-copy">
+                            <p class="eyebrow">Clan · RPG Temporada III</p>
+                            <h1>{result.data.name}</h1>
+                            <div class="clan-context">
+                                <span>
+                                    Liderado por{" "}
+                                    <a
+                                        class="leader"
+                                        href={`/player/${encodeURIComponent(result.data.leader)}`}
+                                    >
+                                        {result.data.leader}
+                                    </a>
+                                </span>
+                                <span
+                                    class:list={[
+                                        "privacy",
+                                        {
+                                            open:
+                                                result.data.privacy === "OPEN",
+                                            closed:
+                                                result.data.privacy === "CLOSED",
+                                        },
+                                    ]}
+                                >
+                                    {result.data.privacy === "OPEN"
+                                        ? "Clan abierto"
+                                        : result.data.privacy === "CLOSED"
+                                          ? "Clan cerrado"
+                                          : result.data.privacy}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="rank">
+                            <>
+                                <small>Posición por kills</small>
+                                <strong class="number">
+                                    #{result.data.position}
+                                </strong>
+                                <span>
+                                    {result.data.distanceToHigher === null
+                                        ? result.data.tiedAtPosition
+                                            ? "Empatado en primera posición"
+                                            : "Líder de la clasificación"
+                                        : `${formatNumber(result.data.distanceToHigher)} kills del clan superior`}
+                                </span>
+                            </>
+                        </div>
+                    </header>
+
+                    {result.data.partialFailures.length > 0 && (
+                        <aside
+                            class="warning"
+                            role="status"
+                            data-clan-section
+                        >
+                            Algunas skins o rangos no pudieron cargarse. Las
+                            estadísticas del clan siguen disponibles.
+                        </aside>
+                    )}
+
+                    <section
+                        class="metrics"
+                        aria-label="Métricas del clan"
+                        data-clan-section
+                    >
+                        <>
+                            <div>
+                                <>
+                                    <span>Kills</span>
+                                    <strong class="number accent">
+                                        {formatNumber(result.data.kills)}
+                                    </strong>
+                                </>
+                            </div>
+                            <div>
+                                <>
+                                    <span>Muertes</span>
+                                    <strong class="number">
+                                        {formatNumber(result.data.deaths)}
+                                    </strong>
+                                </>
+                            </div>
+                            <div>
+                                <>
+                                    <span>Nivel</span>
+                                    <strong class="number">
+                                        {formatNumber(result.data.level)}
+                                    </strong>
+                                </>
+                            </div>
+                            <div>
+                                <>
+                                    <span>Ocupación</span>
+                                    <strong class="number">
+                                        {result.data.members}/
+                                        {result.data.slots}
+                                    </strong>
+                                </>
+                            </div>
+                        </>
+                    </section>
+
+                    <section
+                        class="explanation panel"
+                        data-clan-section
+                    >
+                        <span class="number">
+                            WHY /{" "}
+                            {String(result.data.position).padStart(2, "0")}
+                        </span>
+                        <div>
+                            <p>
+                                La clasificación usa exclusivamente las{" "}
+                                <strong>
+                                    {formatNumber(result.data.kills)} kills
+                                </strong>{" "}
+                                registradas por sus miembros actuales. El nivel
+                                y las muertes se muestran como contexto y no
+                                forman un power score oculto.
+                            </p>
+                            {result.data.higherClan && (
+                                <p>
+                                    El competidor inmediatamente superior es{" "}
+                                    <a
+                                        href={`/rpg/clans/${result.data.higherClan.id}`}
+                                    >
+                                        {result.data.higherClan.name}
+                                    </a>
+                                    , con{" "}
+                                    {formatNumber(result.data.higherClan.kills)}{" "}
+                                    kills.
+                                </p>
+                            )}
+                        </div>
+                    </section>
+
+                    <div class="columns">
+                        <section
+                            class="members panel"
+                            aria-labelledby="members-title"
+                            data-clan-section
+                        >
+                            <div class="section-head">
+                                <>
+                                    <div>
+                                        <>
+                                            <p class="section-kicker">
+                                                Plantilla y aporte
+                                            </p>
+                                            <h2
+                                                id="members-title"
+                                                class="section-title"
+                                            >
+                                                Miembros
+                                            </h2>
+                                        </>
+                                    </div>
+                                    <span>
+                                        {result.data.memberList.length}{" "}
+                                        registrados
+                                    </span>
+                                </>
+                            </div>
+                            {result.data.memberList.length ? (
+                                <div
+                                    class="member-list"
+                                    role="table"
+                                    aria-label="Estadísticas de miembros"
+                                    aria-colcount="5"
+                                >
+                                    <div class="member-columns" role="row">
+                                        <span role="columnheader">Jugador</span>
+                                        <span role="columnheader">Rol</span>
+                                        <span role="columnheader">Kills</span>
+                                        <span role="columnheader">Muertes</span>
+                                        <span role="columnheader">Aporte</span>
+                                    </div>
+                                    {result.data.memberList.map((member) => (
+                                        <div
+                                            class="member"
+                                            role="row"
+                                            data-clan-member
+                                        >
+                                            <div
+                                                class="member-identity"
+                                                role="cell"
+                                            >
+                                                <PlayerIdentity
+                                                    uuid={member.uuid}
+                                                    nickname={member.nickname}
+                                                    rank={member.rank}
+                                                    skin={member.skin}
+                                                />
+                                            </div>
+                                            <span class="role" role="cell">
+                                                {member.role === "leader"
+                                                    ? "Líder"
+                                                    : member.role === "elevated"
+                                                      ? "Oficial"
+                                                      : "Miembro"}
+                                            </span>
+                                            <span class="member-stat" role="cell">
+                                                <small>Kills</small>
+                                                <b class="number">
+                                                    {formatNumber(member.kills)}
+                                                </b>
+                                            </span>
+                                            <span class="member-stat" role="cell">
+                                                <small>Muertes</small>
+                                                <b class="number">
+                                                    {formatNumber(member.deaths)}
+                                                </b>
+                                            </span>
+                                            <span
+                                                class="member-stat contribution"
+                                                role="cell"
+                                            >
+                                                <small>Aporte al clan</small>
+                                                <b class="number">
+                                                    {member.contributionPercent.toFixed(1)}%
+                                                </b>
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p class="empty">
+                                    No hay miembros disponibles.
+                                </p>
+                            )}
+                        </section>
+
+                        <aside class="side">
+                            <section class="panel" data-clan-section>
+                                <h2 class="section-title">Jugador clave</h2>
+                                {result.data.topContributor ? (
+                                    <div class="top">
+                                        <PlayerIdentity
+                                            uuid={
+                                                result.data.topContributor.uuid
+                                            }
+                                            nickname={
+                                                result.data.topContributor
+                                                    .nickname
+                                            }
+                                            rank={
+                                                result.data.topContributor.rank
+                                            }
+                                            skin={
+                                                result.data.topContributor.skin
+                                            }
+                                        />
+                                        <strong class="number">
+                                            {result.data.topContributor.contributionPercent.toFixed(
+                                                1,
+                                            )}
+                                            %
+                                        </strong>
+                                    </div>
+                                ) : (
+                                    <p class="empty">
+                                        Sin aportes registrados.
+                                    </p>
+                                )}
+                            </section>
+                            <section class="panel" data-clan-section>
+                                <h2 class="section-title">Alianzas</h2>
+                                {result.data.allies.length ? (
+                                    <div class="allies">
+                                        {result.data.allies.map((ally) => (
+                                            <a
+                                                href={`/rpg/clans/${ally.id}`}
+                                            >
+                                                <span>{ally.name}</span>
+                                                <b aria-hidden="true">↗</b>
+                                            </a>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p class="empty">
+                                        No hay alianzas registradas.
+                                    </p>
+                                )}
+                            </section>
+                        </aside>
+                    </div>
+                </article>
+            ) : (
+                <StatusState
+                    code={result.status === "not-found" ? 404 : 503}
+                    title={
+                        result.status === "not-found"
+                            ? "Clan no encontrado"
+                            : undefined
+                    }
+                />
+            )
+        }
+    </main>
+</BaseLayout>
+
+<script>
+    import gsap from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    const profile = document.querySelector<HTMLElement>("[data-clan-profile]");
+
+    if (profile) {
+        const hero = profile.querySelector<HTMLElement>("[data-clan-hero]");
+        const heroImage = hero?.querySelector<HTMLElement>(".clan-image");
+        const heroCopy = hero?.querySelector<HTMLElement>(".hero-copy");
+        const heroRank = hero?.querySelector<HTMLElement>(".rank");
+        const sections = Array.from(
+            profile.querySelectorAll<HTMLElement>("[data-clan-section]"),
+        );
+        const members = Array.from(
+            profile.querySelectorAll<HTMLElement>("[data-clan-member]"),
+        );
+        const detailSelector = [
+            ".metrics > div",
+            ".explanation > *",
+            ".members .section-head",
+            ".member-columns",
+            ".top",
+            ".allies > a",
+        ].join(",");
+        const detailItems = Array.from(
+            profile.querySelectorAll<HTMLElement>(detailSelector),
+        );
+        const media = gsap.matchMedia();
+
+        media.add("(prefers-reduced-motion: no-preference)", () => {
+            if (hero) {
+                const heroEntrance = gsap.timeline({
+                    defaults: { ease: "power2.out" },
+                });
+
+                heroEntrance.from(hero, {
+                    autoAlpha: 0,
+                    y: 14,
+                    duration: 0.42,
+                    clearProps: "opacity,visibility,transform",
+                });
+                if (heroImage) {
+                    heroEntrance.from(
+                        heroImage,
+                        {
+                            autoAlpha: 0,
+                            x: -9,
+                            scale: 0.97,
+                            duration: 0.4,
+                        },
+                        0.09,
+                    );
+                }
+                if (heroCopy) {
+                    heroEntrance.from(
+                        heroCopy,
+                        { autoAlpha: 0, y: 8, duration: 0.34 },
+                        0.14,
+                    );
+                }
+                if (heroRank) {
+                    heroEntrance.from(
+                        heroRank,
+                        { autoAlpha: 0, x: 9, duration: 0.32 },
+                        0.17,
+                    );
+                }
+            }
+
+            const viewportLimit = window.innerHeight * 0.94;
+            const passedSections: HTMLElement[] = [];
+            const visibleSections: HTMLElement[] = [];
+            const pendingSections: HTMLElement[] = [];
+            const passedMembers: HTMLElement[] = [];
+            const visibleMembers: HTMLElement[] = [];
+            const pendingMembers: HTMLElement[] = [];
+
+            sections.forEach((section) => {
+                const bounds = section.getBoundingClientRect();
+                if (bounds.bottom < 0) passedSections.push(section);
+                else if (bounds.top < viewportLimit)
+                    visibleSections.push(section);
+                else pendingSections.push(section);
+            });
+            members.forEach((member) => {
+                const bounds = member.getBoundingClientRect();
+                if (bounds.bottom < 0) passedMembers.push(member);
+                else if (bounds.top < viewportLimit) visibleMembers.push(member);
+                else pendingMembers.push(member);
+            });
+
+            const revealSections = (targets: Element[]) => {
+                gsap.to(targets, {
+                    autoAlpha: 1,
+                    y: 0,
+                    duration: 0.42,
+                    stagger: 0.055,
+                    ease: "power2.out",
+                    overwrite: "auto",
+                });
+
+                targets.forEach((target, index) => {
+                    const items = target.querySelectorAll<HTMLElement>(
+                        detailSelector,
+                    );
+                    if (items.length === 0) return;
+
+                    gsap.fromTo(
+                        items,
+                        { autoAlpha: 0, y: 7 },
+                        {
+                            autoAlpha: 1,
+                            y: 0,
+                            duration: 0.3,
+                            stagger: {
+                                amount: Math.min(items.length * 0.025, 0.3),
+                            },
+                            delay: 0.08 + index * 0.035,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        },
+                    );
+                });
+            };
+            const revealMembers = (targets: Element[]) => {
+                gsap.to(targets, {
+                    autoAlpha: 1,
+                    y: 0,
+                    duration: 0.36,
+                    stagger: 0.03,
+                    ease: "power2.out",
+                    overwrite: "auto",
+                });
+            };
+
+            gsap.set(passedSections, { autoAlpha: 1, y: 0 });
+            gsap.set([...visibleSections, ...pendingSections], {
+                autoAlpha: 0,
+                y: 15,
+            });
+            gsap.set(passedMembers, { autoAlpha: 1, y: 0 });
+            gsap.set([...visibleMembers, ...pendingMembers], {
+                autoAlpha: 0,
+                y: 12,
+            });
+            revealSections(visibleSections);
+            revealMembers(visibleMembers);
+
+            const sectionTriggers = pendingSections.length
+                ? ScrollTrigger.batch(pendingSections, {
+                      start: "clamp(top 92%)",
+                      once: true,
+                      interval: 0.08,
+                      batchMax: 3,
+                      onEnter: revealSections,
+                  })
+                : [];
+            const memberTriggers = pendingMembers.length
+                ? ScrollTrigger.batch(pendingMembers, {
+                      start: "clamp(top 94%)",
+                      once: true,
+                      interval: 0.06,
+                      batchMax: 8,
+                      onEnter: revealMembers,
+                  })
+                : [];
+            const refreshFrame = window.requestAnimationFrame(() => {
+                ScrollTrigger.refresh();
+                ScrollTrigger.update();
+            });
+
+            return () => {
+                window.cancelAnimationFrame(refreshFrame);
+                [...sectionTriggers, ...memberTriggers].forEach((trigger) =>
+                    trigger.kill(),
+                );
+                gsap.killTweensOf([
+                    hero,
+                    heroImage,
+                    heroCopy,
+                    heroRank,
+                    ...sections,
+                    ...members,
+                    ...detailItems,
+                ]);
+                gsap.set([...sections, ...members, ...detailItems], {
+                    clearProps: "opacity,visibility,transform",
+                });
+            };
+        });
+
+        media.add(
+            "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+            () => {
+                const allies = Array.from(
+                    profile.querySelectorAll<HTMLElement>(".allies a"),
+                );
+                const targets = [...members, ...allies];
+                const cleanups = targets.map((target) => {
+                    const isMember = target.matches("[data-clan-member]");
+                    const arrow = target.querySelector<HTMLElement>("b");
+                    const enter = () => {
+                        gsap.to(target, {
+                            x: isMember ? -5 : 4,
+                            scale: isMember ? 1.002 : 1,
+                            duration: 0.2,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                        if (arrow && !isMember) {
+                            gsap.to(arrow, {
+                                x: 3,
+                                y: -3,
+                                duration: 0.2,
+                                ease: "power2.out",
+                                overwrite: "auto",
+                            });
+                        }
+                    };
+                    const leave = () => {
+                        gsap.to(target, {
+                            x: 0,
+                            scale: 1,
+                            duration: 0.24,
+                            ease: "power2.out",
+                            overwrite: "auto",
+                        });
+                        if (arrow && !isMember) {
+                            gsap.to(arrow, {
+                                x: 0,
+                                y: 0,
+                                duration: 0.22,
+                                ease: "power2.out",
+                                overwrite: "auto",
+                            });
+                        }
+                    };
+                    const focusOut = (event: FocusEvent) => {
+                        if (!target.contains(event.relatedTarget as Node)) leave();
+                    };
+
+                    target.addEventListener("mouseenter", enter);
+                    target.addEventListener("mouseleave", leave);
+                    target.addEventListener("focusin", enter);
+                    target.addEventListener("focusout", focusOut);
+
+                    return () => {
+                        target.removeEventListener("mouseenter", enter);
+                        target.removeEventListener("mouseleave", leave);
+                        target.removeEventListener("focusin", enter);
+                        target.removeEventListener("focusout", focusOut);
+                        gsap.killTweensOf([target, arrow]);
+                    };
+                });
+
+                return () => cleanups.forEach((cleanup) => cleanup());
+            },
+        );
+    }
+</script>
+
+<style>
+    .clan-profile {
+        display: grid;
+        gap: 1.25rem;
+    }
+    .hero {
+        position: relative;
+        display: grid;
+        grid-template-columns: clamp(96px, 12vw, 128px) minmax(0, 1fr) minmax(190px, auto);
+        align-items: center;
+        gap: clamp(1rem, 4vw, 2.5rem);
+        padding: clamp(1.25rem, 4vw, 2.5rem);
+        overflow: hidden;
+    }
+    .hero::before {
+        content: "";
+        position: absolute;
+        width: 360px;
+        height: 360px;
+        left: -170px;
+        bottom: -270px;
+        border-radius: 50%;
+        background: var(--cyan);
+        filter: blur(90px);
+        opacity: 0.12;
+    }
+    .hero > * {
+        position: relative;
+    }
+    .clan-image {
+        position: relative;
+        display: grid;
+        width: 100%;
+        aspect-ratio: 1;
+        overflow: hidden;
+        place-items: center;
+        border: 1px solid var(--line-bright);
+        border-radius: 16px;
+        background: linear-gradient(145deg, #1b2430, #0c1118);
+        color: var(--cyan);
+        font-family: var(--display);
+        font-size: clamp(1.1rem, 2vw, 1.6rem);
+    }
+    .clan-image img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(2.3rem, 5vw, 4.25rem);
+        letter-spacing: -0.025em;
+        line-height: 1.08;
+    }
+    .hero-copy .eyebrow {
+        margin: 0 0 0.45rem;
+    }
+    .clan-context {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem;
+        margin: 0.7rem 0 0;
+        color: var(--muted);
+        font-size: clamp(0.82rem, 1.3vw, 0.95rem);
+    }
+    .leader {
+        color: var(--cyan);
+        font-weight: 800;
+    }
+    .leader:hover {
+        color: var(--text);
+    }
+    .privacy {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.28rem 0.55rem;
+        border: 1px solid var(--line-bright);
+        border-radius: 100px;
+        color: var(--muted);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+    .privacy::before {
+        content: "";
+        width: 0.38rem;
+        height: 0.38rem;
+        border-radius: 50%;
+        background: currentColor;
+    }
+    .privacy.open {
+        border-color: rgb(89 201 130 / 45%);
+        color: var(--success);
+        background: rgb(89 201 130 / 8%);
+    }
+    .privacy.closed {
+        border-color: rgb(224 108 96 / 45%);
+        color: #e88a80;
+        background: rgb(224 108 96 / 8%);
+    }
+    .rank {
+        min-width: 180px;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgb(0 0 0 / 18%);
+    }
+    .rank small,
+    .rank strong,
+    .rank span {
+        display: block;
+    }
+    .rank small {
+        color: var(--muted);
+    }
+    .rank strong {
+        color: var(--gold);
+        font-size: 2.8rem;
+    }
+    .rank span {
+        color: var(--faint);
+        font-size: 0.68rem;
+    }
+    .warning {
+        padding: 0.8rem 1rem;
+        border: 1px solid #6e572d;
+        border-radius: 7px;
+        color: #d9c797;
+        font-size: 0.8rem;
+    }
+    .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--line);
+        background: var(--surface);
+    }
+    .metrics div {
+        padding: 1.2rem;
+        border-right: 1px solid var(--line);
+    }
+    .metrics div:last-child {
+        border: 0;
+    }
+    .metrics span,
+    .metrics strong {
+        display: block;
+    }
+    .metrics span {
+        color: var(--muted);
+        font-size: 0.68rem;
+        text-transform: uppercase;
+    }
+    .metrics strong {
+        margin-top: 0.3rem;
+        font-size: 1.5rem;
+    }
+    .metrics .accent {
+        color: var(--accent-bright);
+    }
+    .explanation {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1.5rem;
+        padding: 1.4rem;
+        border-left: 3px solid var(--gold);
+        box-shadow: none;
+    }
+    .explanation > span {
+        color: var(--gold);
+        font-size: 0.7rem;
+    }
+    .explanation p {
+        max-width: 80ch;
+        margin: 0.5rem 0 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+    }
+    .explanation a {
+        color: var(--cyan);
+        text-decoration: underline;
+    }
+    .columns {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+        gap: 1.25rem;
+    }
+    .members,
+    .side section {
+        padding: 1.25rem;
+        box-shadow: none;
+    }
+    .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        padding-bottom: 1rem;
+    }
+    .section-head > span {
+        color: var(--faint);
+        font-size: 0.7rem;
+    }
+    .member-columns,
+    .member {
+        display: grid;
+        grid-template-columns: minmax(170px, 1.5fr) 0.55fr 0.5fr 0.55fr 0.65fr;
+        gap: 1rem;
+        align-items: center;
+    }
+    .member-columns {
+        padding: 0.55rem 0;
+        border-block: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+    .member {
+        min-height: 68px;
+        border-bottom: 1px solid var(--line);
+        transform-origin: center left;
+    }
+    .member:last-child {
+        border-bottom: 0;
+    }
+    .member-identity {
+        min-width: 0;
+    }
+    .member > span {
+        color: var(--muted);
+        font-size: 0.76rem;
+    }
+    .member-stat small,
+    .member-stat b {
+        display: block;
+    }
+    .member-stat small {
+        display: none;
+        color: var(--faint);
+        font-size: 0.58rem;
+        text-transform: uppercase;
+    }
+    .member-stat b {
+        color: var(--text);
+        font-size: 0.9rem;
+    }
+    .member .role {
+        width: fit-content;
+        padding: 0.2rem 0.4rem;
+        border: 1px solid rgb(85 214 190 / 25%);
+        border-radius: 3px;
+        color: var(--cyan);
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    .member .contribution b {
+        color: var(--accent-bright);
+        font-size: 1rem;
+    }
+    .side {
+        display: grid;
+        align-content: start;
+        gap: 1.25rem;
+    }
+    .top {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    .top > strong {
+        color: var(--accent-bright);
+        font-size: 1.4rem;
+    }
+    .allies {
+        margin-top: 1rem;
+    }
+    .allies a {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.7rem 0;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.8rem;
+    }
+    .allies a:hover {
+        color: var(--cyan);
+    }
+    .empty {
+        color: var(--faint);
+        font-size: 0.75rem;
+    }
+    @media (max-width: 800px) {
+        .hero {
+            grid-template-columns: 96px minmax(0, 1fr);
+            align-items: center;
+        }
+        .rank {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            min-width: 0;
+        }
+        .rank strong {
+            grid-column: 2;
+            grid-row: 1 / span 2;
+        }
+        .rank span {
+            grid-column: 1;
+        }
+        .columns {
+            grid-template-columns: 1fr;
+        }
+        .metrics {
+            grid-template-columns: 1fr 1fr;
+        }
+        .metrics div:nth-child(2) {
+            border-right: 0;
+        }
+        .metrics div {
+            border-bottom: 1px solid var(--line);
+        }
+    }
+    @media (max-width: 600px) {
+        .hero {
+            grid-template-columns: 72px minmax(0, 1fr);
+            gap: 1rem;
+            padding: 1rem;
+        }
+        h1 {
+            font-size: clamp(1.7rem, 9vw, 2.35rem);
+            overflow-wrap: anywhere;
+        }
+        .hero-copy .eyebrow {
+            font-size: 0.56rem;
+        }
+        .clan-context {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 0.45rem;
+            font-size: 0.78rem;
+        }
+        .rank {
+            padding: 0.85rem;
+        }
+        .rank strong {
+            font-size: 2.2rem;
+        }
+        .members {
+            padding: 1rem;
+        }
+        .member-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .member-columns {
+            display: none;
+        }
+        .member {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.8rem 0.65rem;
+            padding: 0.9rem;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: rgb(0 0 0 / 12%);
+        }
+        .member:last-child {
+            border-bottom: 1px solid var(--line);
+        }
+        .member-identity {
+            grid-column: 1 / 3;
+        }
+        .member .role {
+            grid-column: 3;
+            justify-self: end;
+        }
+        .member-stat {
+            padding-top: 0.65rem;
+            border-top: 1px solid var(--line);
+        }
+        .member-stat small {
+            display: block;
+            min-height: 1.8em;
+        }
+        .member-stat b,
+        .member .contribution b {
+            margin-top: 0.25rem;
+            font-size: 1rem;
+        }
+        .explanation {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

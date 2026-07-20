@@ -1,24 +1,17 @@
 import type { MiddlewareHandler } from "astro";
 
-const CONFIG = {
-  blockedUserAgents: ["sqlmap", "nikto", "nmap", "masscan", "zgrab"],
-};
+const ALLOWED_METHODS = new Set(["GET", "HEAD"]);
+const MAX_PATH_LENGTH = 256;
 
 export const onRequest: MiddlewareHandler = async ({ request, url }, next) => {
-  const path = url.pathname;
-
-  if (path.startsWith("/api/")) {
-    const userAgent = request.headers.get("user-agent")?.toLowerCase() || "";
-    const isBlocked = CONFIG.blockedUserAgents.some(blocked =>
-      userAgent.includes(blocked)
-    );
-
-    if (isBlocked) {
-      return new Response(JSON.stringify({ error: "Access denied" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+  if (!ALLOWED_METHODS.has(request.method)) {
+    return new Response(null, {
+      status: 405,
+      headers: { Allow: "GET, HEAD" },
+    });
+  }
+  if (url.pathname.length > MAX_PATH_LENGTH) {
+    return new Response(null, { status: 414 });
   }
 
   const response = await next();

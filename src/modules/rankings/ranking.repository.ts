@@ -8,15 +8,16 @@ const combatValueColumns: Record<Exclude<RankingMetric, "koth">, SQL> = {
   maxstreak: sql.raw("s.MAX_STREAK"),
 };
 
-const MAX_LIMIT = 100;
+const MAX_LIMIT = 40;
+const MAX_OFFSET = 1_000;
 
 export async function findRanking(
   metric: RankingMetric,
-  requestedLimit = 30,
+  requestedLimit = MAX_LIMIT,
   requestedOffset = 0,
 ): Promise<RankingRow[]> {
   const limit = Math.min(Math.max(Math.trunc(requestedLimit), 1), MAX_LIMIT);
-  const offset = Math.max(Math.trunc(requestedOffset), 0);
+  const offset = Math.min(Math.max(Math.trunc(requestedOffset), 0), MAX_OFFSET);
   const statement = rankingStatement(metric, limit, offset);
 
   return observeQuery(`rankings.${metric}`, "rpg", async () => {
@@ -35,17 +36,19 @@ export async function findPlayerRankingPositions(uuid: string): Promise<RankingP
              SELECT 'kills' AS metric, uuid, value FROM kills_base
              UNION ALL SELECT 'maxstreak', uuid, value FROM maxstreak_base
              UNION ALL SELECT 'koth', uuid, value FROM koth_base
-           ), ranked AS (
-             SELECT metric, uuid, value,
-                    DENSE_RANK() OVER (PARTITION BY metric ORDER BY value DESC) AS position
-             FROM metrics
-           )
-      SELECT current.metric, current.value, current.position,
+            ), current_values AS (
+              SELECT metric, value
+              FROM metrics
+              WHERE uuid = ${uuid}
+            )
+      SELECT current.metric, current.value,
+             (SELECT COUNT(DISTINCT higher.value) + 1
+                FROM metrics higher
+               WHERE higher.metric = current.metric AND higher.value > current.value) AS position,
              (SELECT MIN(higher.value)
                 FROM metrics higher
                WHERE higher.metric = current.metric AND higher.value > current.value) - current.value AS distanceToHigher
-      FROM ranked current
-      WHERE current.uuid = ${uuid}
+      FROM current_values current
     `);
     return (result[0] as unknown as RankingPosition[]).map(normalizeRankingPosition);
   });
@@ -53,12 +56,16 @@ export async function findPlayerRankingPositions(uuid: string): Promise<RankingP
 
 function rankingStatement(metric: RankingMetric, limit: number, offset: number): SQL {
   return sql`
-    WITH base AS (${rankingUniverse(metric)}), ranked AS (
+    WITH base AS (${rankingUniverse(metric)}), value_steps AS (
+      SELECT value, LAG(value) OVER (ORDER BY value DESC) AS higher_value
+      FROM (SELECT DISTINCT value FROM base) distinct_values
+    ), ranked AS (
       SELECT current.uuid, current.nickname, current.value,
              current.dailyDelta, current.weeklyDelta,
              DENSE_RANK() OVER (ORDER BY current.value DESC) AS position,
-             (SELECT MIN(higher.value) FROM base higher WHERE higher.value > current.value) AS higher_value
+             value_steps.higher_value
       FROM base current
+      INNER JOIN value_steps ON value_steps.value = current.value
     )
     SELECT uuid, nickname, value, dailyDelta, weeklyDelta,
            position, higher_value - value AS distanceToHigher

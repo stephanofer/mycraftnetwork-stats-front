@@ -6,7 +6,7 @@ import { findClanPosition, findClanProfile, findClanRanking } from "./clan.repos
 import type { ClanProfile, ClanRankingEntry } from "./clan.types";
 import { selectTopContributor } from "./clan-contributors";
 
-export async function getClanRanking(limit = 30): Promise<DataResult<ClanRankingEntry[]>> {
+export async function getClanRanking(limit = 40): Promise<DataResult<ClanRankingEntry[]>> {
   try {
     return { status: "ok", data: await findClanRanking(limit) };
   } catch {
@@ -20,11 +20,9 @@ export async function getClanProfile(id: number): Promise<DataResult<ClanProfile
     const raw = await findClanProfile(id);
     if (!raw) return { status: "not-found" };
     const uuids = raw.members.map((member) => member.uuid);
-    const [position, ranks, skins] = await Promise.all([
-      findClanPosition(raw.clan.kills),
-      getRanksForPlayers(uuids),
-      getSkinsForPlayers(uuids),
-    ]);
+    const position = await findClanPosition(raw.clan.id);
+    const ranks = await getRanksForPlayers(uuids);
+    const skins = await getSkinsForPlayers(uuids);
     const partialFailures: ClanProfile["partialFailures"] = [];
     if (ranks.status === "unavailable") partialFailures.push("ranks");
     if (skins.status === "unavailable") partialFailures.push("skins");

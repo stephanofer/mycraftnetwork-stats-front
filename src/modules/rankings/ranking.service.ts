@@ -10,6 +10,7 @@ export const RANKING_METRICS = {
   maxstreak: { label: "Best streak" },
   koth: { label: "KOTH wins" },
 } as const satisfies Record<RankingMetric, { label: string }>;
+const MAX_RANKING_ENTRIES = 40;
 
 export function isRankingMetric(value: string): value is RankingMetric {
   return Object.hasOwn(RANKING_METRICS, value);
@@ -17,7 +18,7 @@ export function isRankingMetric(value: string): value is RankingMetric {
 
 export async function getRanking(
   metric: RankingMetric,
-  limit = 30,
+  limit = MAX_RANKING_ENTRIES,
   offset = 0,
 ): Promise<DataResult<RankingPage>> {
   try {
@@ -35,8 +36,8 @@ export async function getRanking(
       status: "ok",
       data: {
         metric,
-        limit: Math.min(Math.max(Math.trunc(limit), 1), 100),
-        offset: Math.max(Math.trunc(offset), 0),
+        limit: Math.min(Math.max(Math.trunc(limit), 1), MAX_RANKING_ENTRIES),
+        offset: Math.min(Math.max(Math.trunc(offset), 0), 1_000),
         partialFailures,
         entries: rows.map((row) => ({
           ...row,

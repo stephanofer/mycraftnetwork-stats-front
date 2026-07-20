@@ -13,6 +13,8 @@ const SITEMAP_PAGES = new Set([
   "https://estadisticas.mycraft.es/ranking/rpg/maxstreak",
   "https://estadisticas.mycraft.es/ranking/rpg/koth",
   "https://estadisticas.mycraft.es/rpg/clans",
+  "https://estadisticas.mycraft.es/rpg/clan-wars",
+  "https://estadisticas.mycraft.es/rpg/clan-wars/clan-war-1-temporada-3",
 ]);
 
 
@@ -35,6 +37,7 @@ export default defineConfig({
   adapter: vercel({
     isr: {
       expiration: 60 * 15,
+      exclude: ["/rpg/clans/[id]/[slug]"],
     },
   }),
   
@@ -80,7 +83,7 @@ export default defineConfig({
           return item;
         }
         
-        if (url.includes('/rpg/clans')) {
+        if (url.includes('/rpg/clans') || url.includes('/rpg/clan-wars')) {
           item.priority = 0.8;
           item.changefreq = 'daily' as any;
           return item;

@@ -130,6 +130,8 @@ Configuracion base:
 - Pool de skins con un maximo inicial de 1 conexion por instancia caliente.
 - Pools creados a nivel de modulo para reutilizar instancias calientes.
 - Timeout corto de conexion y consulta, cola limitada y errores observables.
+- `max_statement_time = 5` por sesion MariaDB para cancelar realmente sentencias lentas; el timeout de `mysql2` se conserva como segunda barrera cliente.
+- Las consultas internas se secuencian o agrupan con una concurrencia maxima acorde al pool; no se aumenta el pool para compensar fan-out.
 - Usuario MariaDB exclusivo con permisos `SELECT` sobre las tablas aprobadas.
 - TLS cuando este disponible en el servidor.
 - Sin credenciales, propiedades Base64, firmas o SQL sensible en logs y Sentry.
@@ -158,7 +160,11 @@ Comportamiento esperado:
 - Cada ranking, jugador y clan se cachea naturalmente por ruta.
 - Los 404 validos tendran cache corta y los fallos de infraestructura nunca se convertiran en rankings vacios.
 
-No se incorporaran inicialmente Redis, Vercel Runtime Cache, cron jobs ni caches manuales en memoria. El middleware dejara de imponer `s-maxage=30` globalmente para no competir con ISR.
+No se incorporaran inicialmente Redis, Vercel Runtime Cache ni cron jobs. El middleware dejara de imponer `s-maxage=30` globalmente para no competir con ISR. Como excepcion deliberada de baja cardinalidad, el grafo global de rangos LuckPerms se reutiliza durante 60 segundos por instancia caliente y deduplica cargas simultaneas; ISR sigue siendo la cache durable de paginas.
+
+La configuracion generada por `@astrojs/vercel` debe verificarse en cada actualizacion mayor del adaptador. Para la version actual, el artefacto confirma `expiration: 900` y limita `allowQuery` a los parametros internos de Astro, por lo que query strings arbitrarios no crean variantes de ISR.
+
+ISR no constituye proteccion suficiente contra paths dinamicos siempre nuevos. Vercel Firewall aplicara rate limiting antes de la funcion sobre `/player/*` y perfiles de clan, primero en modo `Log` y luego con respuesta `429` una vez medido el trafico legitimo. La proteccion DDoS automatica no sustituye esta regla contra abuso de aplicacion.
 
 ## 8. Rankings de jugadores
 
@@ -289,10 +295,10 @@ Rutas RPG principales:
 /ranking/rpg/koth
 /player/[identifier]
 /rpg/clans
-/rpg/clans/[id]/[slug]
+/rpg/clans/[id]
 ```
 
-SMP tendra una ruta informativa estable mientras permanezca en construccion. Las rutas anteriores de RPG se conservaran o redirigiran permanentemente. Las metricas retiradas redirigiran al indice valido de rankings en lugar de mostrar paginas vacias.
+SMP tendra una ruta informativa estable mientras permanezca en construccion. Las rutas anteriores de RPG se conservaran o redirigiran permanentemente. Las URLs historicas de clan con slug redirigiran por ID sin consultar MariaDB; el slug deja de formar parte de la identidad cacheable para impedir cardinalidad arbitraria. Las metricas retiradas redirigiran al indice valido de rankings en lugar de mostrar paginas vacias.
 
 Los parametros de jugadores aceptaran nickname o UUID validos. Los perfiles resolveran el nickname canonico para reducir duplicacion de cache por diferencias de mayusculas.
 

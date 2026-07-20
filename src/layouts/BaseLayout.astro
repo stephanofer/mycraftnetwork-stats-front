@@ -9,9 +9,10 @@ interface Props {
     description?: string;
     canonicalUrl?: string;
     noindex?: boolean;
+    image?: string;
 }
 
-const { title, description, canonicalUrl, noindex = false } = Astro.props;
+const { title, description, canonicalUrl, noindex = false, image } = Astro.props;
 ---
 
 <!doctype html>
@@ -35,7 +36,7 @@ const { title, description, canonicalUrl, noindex = false } = Astro.props;
             type="font/woff2"
             crossorigin="anonymous"
         />
-        <MainHead {title} {description} {canonicalUrl} {noindex} />
+        <MainHead {title} {description} {canonicalUrl} {noindex} {image} />
     </head>
     <body>
         <a class="skip-link" href="#contenido">Saltar al contenido</a>
